@@ -44,9 +44,67 @@
         "email": { "type": "string" },
         "displayName": { "type": "string" },
         "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "points": { "type": "number" },
+        "favorites": { "type": "array", "items": { "type": "string" } },
+        "notificationSettings": {
+          "type": "object",
+          "properties": {
+            "goals": { "type": "boolean" },
+            "cards": { "type": "boolean" },
+            "matchStart": { "type": "boolean" },
+            "matchEnd": { "type": "boolean" }
+          }
+        },
         "role": { "type": "string", "enum": ["admin", "user"] }
       },
-      "required": ["uid", "email"]
+      "required": ["uid", "email", "points", "notificationSettings"]
+    },
+    "PredictionRecord": {
+      "title": "PredictionRecord",
+      "description": "A record of a user's match prediction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "matchId": { "type": "string" },
+        "predictedScore": { "type": "string" },
+        "actualScore": { "type": "string" },
+        "pointsEarned": { "type": "number" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "userId", "matchId", "predictedScore", "timestamp"]
+    },
+    "SocialEvent": {
+      "title": "SocialEvent",
+      "description": "An event for the global social feed",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string", "enum": ["match_event", "chat_message"] },
+        "matchId": { "type": "string" },
+        "matchName": { "type": "string" },
+        "content": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "type", "matchId", "content", "timestamp"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "A message in the fan chat",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "matchId": { "type": "string" },
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userPhoto": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number" }
+      },
+      "required": ["id", "matchId", "userId", "userName", "text", "timestamp"]
     }
   },
   "firestore": {
@@ -54,9 +112,21 @@
       "schema": "Match",
       "description": "Collection of sports matches"
     },
+    "/matches/{matchId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Sub-collection of chat messages for a match"
+    },
     "/users/{userId}": {
       "schema": "User",
       "description": "Collection of user profiles"
+    },
+    "/predictions/{predictionId}": {
+      "schema": "PredictionRecord",
+      "description": "Collection of user match predictions"
+    },
+    "/social_events/{eventId}": {
+      "schema": "SocialEvent",
+      "description": "Global collection of social events and messages"
     }
   }
 }

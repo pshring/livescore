@@ -27,7 +27,19 @@ service cloud.firestore {
     //   - email: string (required)
     //   - displayName: string (optional)
     //   - photoURL: string (optional)
+    //   - favorites: list (optional, strings)
     //   - role: string (required, enum: admin, user)
+    //
+    // Collection: matches/{matchId}/messages
+    // Document ID: messageId
+    // Fields:
+    //   - id: string (required)
+    //   - matchId: string (required)
+    //   - userId: string (required)
+    //   - userName: string (required)
+    //   - userPhoto: string (optional)
+    //   - text: string (required, max 500 chars)
+    //   - timestamp: number (required)
     //
     // ===============================================================
 
@@ -49,8 +61,7 @@ service cloud.firestore {
     }
 
     function isValidMatch(data) {
-      return data.id is string &&
-             data.sport is string &&
+      return data.sport is string &&
              data.homeTeam is string &&
              data.awayTeam is string &&
              data.homeScore is number &&
@@ -63,7 +74,33 @@ service cloud.firestore {
     function isValidUser(data) {
       return data.uid is string &&
              data.email is string &&
-             data.role in ['admin', 'user'];
+             data.role in ['admin', 'user'] &&
+             data.points is number &&
+             data.notificationSettings is map &&
+             data.notificationSettings.goals is bool &&
+             data.notificationSettings.cards is bool &&
+             data.notificationSettings.matchStart is bool &&
+             data.notificationSettings.matchEnd is bool &&
+             (!('bio' in data) || data.bio is string) &&
+             (!('favorites' in data) || data.favorites is list);
+    }
+
+    function isValidPrediction(data) {
+      return data.userId is string &&
+             data.matchId is string &&
+             data.predictedScore is string &&
+             data.timestamp is number &&
+             (!('actualScore' in data) || data.actualScore is string) &&
+             (!('pointsEarned' in data) || data.pointsEarned is number);
+    }
+
+    function isValidMessage(data) {
+      return data.matchId is string &&
+             data.userId is string &&
+             data.userName is string &&
+             (!('userPhoto' in data) || data.userPhoto is string) &&
+             data.text is string && data.text.size() <= 500 &&
+             data.timestamp is number;
     }
 
     // ===============================================================
@@ -71,16 +108,34 @@ service cloud.firestore {
     // ===============================================================
 
     match /users/{userId} {
-      allow read: if isOwner(userId) || isAdmin();
+      allow read: if true; // Publicly readable for leaderboard/profiles
       allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    ((isOwner(userId) && request.resource.data.role == 'user') || isAdmin());
+                    ((isOwner(userId) && request.resource.data.role == 'user' && request.resource.data.points == 0) || isAdmin());
       allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
-                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role && request.resource.data.points == resource.data.points) || isAdmin());
+    }
+
+    match /predictions/{predictionId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && isValidPrediction(request.resource.data) && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    match /social_events/{eventId} {
+      allow read: if true;
+      allow create: if isAuthenticated(); // Users can post messages to social feed
+      allow update, delete: if isAdmin();
     }
 
     match /matches/{matchId} {
       allow read: if true; // Publicly readable for live scores
       allow write: if isAdmin(); // Only admins (or the server-side logic) can write
+
+      match /messages/{messageId} {
+        allow read: if true;
+        allow create: if isAuthenticated() && isValidMessage(request.resource.data) && request.resource.data.userId == request.auth.uid;
+        allow delete: if isAdmin();
+      }
     }
   }
 }

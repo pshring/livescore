@@ -1,22 +1,77 @@
-import { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
-import { Match, MatchEvent } from "./types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Match, MatchEvent, ChatMessage, UserProfile, SocialEvent, PredictionRecord } from "./types";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Trophy, Clock, Activity, MessageSquare, Zap, ChevronRight, LogIn, LogOut, User } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { Trophy, Clock, Activity, MessageSquare, Zap, ChevronRight, LogIn, LogOut, User, Heart, Send, Bell, Settings, Share2, TrendingUp, Users, Award } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { GoogleGenAI } from "@google/genai";
 import { auth, db } from "./lib/firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from "firebase/auth";
-import { collection, onSnapshot, query, doc, setDoc, getDocFromServer } from "firebase/firestore";
+import { collection, onSnapshot, query, doc, setDoc, getDocFromServer, orderBy, limit, addDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 
 const socket: Socket = io();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string;
+    email?: string | null;
+    emailVerified?: boolean;
+    isAnonymous?: boolean;
+    tenantId?: string | null;
+    providerInfo: {
+      providerId: string;
+      displayName: string | null;
+      email: string | null;
+      photoUrl: string | null;
+    }[];
+  }
+}
+
+const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData.map(provider => ({
+        providerId: provider.providerId,
+        displayName: provider.displayName,
+        email: provider.email,
+        photoUrl: provider.photoURL
+      })) || []
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
 
 export default function App() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -25,6 +80,16 @@ export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [selectedSport, setSelectedSport] = useState<Match["sport"] | "all">("all");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [newMessage, setNewMessage] = useState("");
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [notifications, setNotifications] = useState<string[]>([]);
+  const [socialEvents, setSocialEvents] = useState<SocialEvent[]>([]);
+  const [leaderboard, setLeaderboard] = useState<UserProfile[]>([]);
+  const [userPredictions, setUserPredictions] = useState<PredictionRecord[]>([]);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileForm, setProfileForm] = useState({ displayName: "", bio: "", photoURL: "" });
+  const [myPrediction, setMyPrediction] = useState("");
   
   const processedEvents = useRef<Set<string>>(new Set());
   const requestQueue = useRef<(() => Promise<void>)[]>([]);
@@ -130,15 +195,37 @@ export default function App() {
       setUser(currentUser);
       setIsAuthReady(true);
       if (currentUser) {
-        // Sync user to Firestore
+        // Sync user to Firestore and listen for profile changes
         const userRef = doc(db, "users", currentUser.uid);
         setDoc(userRef, {
           uid: currentUser.uid,
           email: currentUser.email,
           displayName: currentUser.displayName,
           photoURL: currentUser.photoURL,
-          role: "user" // Default role
+          points: 0,
+          notificationSettings: {
+            goals: true,
+            cards: true,
+            matchStart: true,
+            matchEnd: true
+          },
+          role: "user"
         }, { merge: true });
+
+        const unsubProfile = onSnapshot(userRef, (doc) => {
+          if (doc.exists()) {
+            const profile = doc.data() as UserProfile;
+            setUserProfile(profile);
+            setProfileForm({
+              displayName: profile.displayName || "",
+              bio: profile.bio || "",
+              photoURL: profile.photoURL || ""
+            });
+          }
+        });
+        return () => unsubProfile();
+      } else {
+        setUserProfile(null);
       }
     });
 
@@ -219,6 +306,29 @@ export default function App() {
         const existing = prev.find(m => m.id === updatedMatch.id);
         const newEvents = updatedMatch.events.filter(e => !existing?.events.some(ee => ee.id === e.id));
         
+        // Alert logic for favorites
+        if (userProfile?.favorites?.includes(updatedMatch.id) && newEvents.length > 0) {
+          newEvents.forEach(event => {
+            const settings = userProfile.notificationSettings;
+            const type = event.type.toLowerCase();
+            const shouldAlert = 
+              (settings.goals && type.includes("goal")) ||
+              (settings.cards && type.includes("card")) ||
+              (settings.matchStart && type.includes("start")) ||
+              (settings.matchEnd && type.includes("finish"));
+
+            if (shouldAlert) {
+              const alertMsg = `${updatedMatch.homeTeam} vs ${updatedMatch.awayTeam}: ${event.description}`;
+              setNotifications(prev => [alertMsg, ...prev].slice(0, 5));
+              
+              // Auto-remove notification after 5 seconds
+              setTimeout(() => {
+                setNotifications(prev => prev.filter(n => n !== alertMsg));
+              }, 5000);
+            }
+          });
+        }
+
         if (enabledMatchesRef.current.has(updatedMatch.id)) {
           newEvents.forEach(e => generateCommentary(updatedMatch, e));
         }
@@ -234,15 +344,143 @@ export default function App() {
       });
     });
 
+    // Social Feed Listener
+    const socialQ = query(collection(db, "social_events"), orderBy("timestamp", "desc"), limit(50));
+    const unsubscribeSocial = onSnapshot(socialQ, (snapshot) => {
+      setSocialEvents(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SocialEvent)));
+    });
+
+    // Leaderboard Listener
+    const leaderboardQ = query(collection(db, "users"), orderBy("points", "desc"), limit(10));
+    const unsubscribeLeaderboard = onSnapshot(leaderboardQ, (snapshot) => {
+      setLeaderboard(snapshot.docs.map(doc => doc.data() as UserProfile));
+    });
+
     return () => {
       unsubscribeAuth();
       unsubscribeMatches();
+      unsubscribeSocial();
+      unsubscribeLeaderboard();
       socket.off("matchUpdate");
     };
   }, []);
 
   const login = () => signInWithPopup(auth, new GoogleAuthProvider());
   const logout = () => signOut(auth);
+
+  useEffect(() => {
+    if (!selectedMatchId) {
+      setMessages([]);
+      return;
+    }
+
+    const q = query(
+      collection(db, "matches", selectedMatchId, "messages"),
+      orderBy("timestamp", "desc"),
+      limit(50)
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as ChatMessage));
+      setMessages(msgs.reverse());
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, `matches/${selectedMatchId}/messages`);
+    });
+
+    return () => unsubscribe();
+  }, [selectedMatchId]);
+
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedMatchId || !newMessage.trim()) return;
+
+    try {
+      const msgData = {
+        matchId: selectedMatchId,
+        userId: user.uid,
+        userName: user.displayName || "Anonymous",
+        userPhoto: user.photoURL || "",
+        text: newMessage,
+        timestamp: Date.now()
+      };
+      await addDoc(collection(db, "matches", selectedMatchId, "messages"), msgData);
+      
+      // Also post to global social feed
+      await addDoc(collection(db, "social_events"), {
+        type: "chat_message",
+        matchId: selectedMatchId,
+        matchName: selectedMatch?.homeTeam + " vs " + selectedMatch?.awayTeam,
+        content: newMessage,
+        userName: user.displayName || "Anonymous",
+        userPhoto: user.photoURL || "",
+        timestamp: Date.now()
+      });
+
+      setNewMessage("");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, `matches/${selectedMatchId}/messages`);
+    }
+  };
+
+  const toggleFavorite = async (matchId: string) => {
+    if (!user) {
+      login();
+      return;
+    }
+
+    const userRef = doc(db, "users", user.uid);
+    const isFavorite = userProfile?.favorites?.includes(matchId);
+
+    try {
+      await updateDoc(userRef, {
+        favorites: isFavorite ? arrayRemove(matchId) : arrayUnion(matchId)
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
+  const updateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        displayName: profileForm.displayName,
+        bio: profileForm.bio,
+        photoURL: profileForm.photoURL
+      });
+      setIsProfileOpen(false);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
+  const updateNotificationSettings = async (key: keyof UserProfile["notificationSettings"], value: boolean) => {
+    if (!user || !userProfile) return;
+    try {
+      await updateDoc(doc(db, "users", user.uid), {
+        [`notificationSettings.${key}`]: value
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${user.uid}`);
+    }
+  };
+
+  const makePrediction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user || !selectedMatchId || !myPrediction.trim()) return;
+    try {
+      await addDoc(collection(db, "predictions"), {
+        userId: user.uid,
+        matchId: selectedMatchId,
+        predictedScore: myPrediction,
+        timestamp: Date.now()
+      });
+      setMyPrediction("");
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, "predictions");
+    }
+  };
 
   const selectedMatch = matches.find((m) => m.id === selectedMatchId);
 
@@ -349,6 +587,29 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface text-slate-900 font-sans selection:bg-brand selection:text-white relative overflow-x-hidden">
+      {/* Notifications Overlay */}
+      <div className="fixed top-24 right-6 z-[100] flex flex-col gap-3 pointer-events-none">
+        <AnimatePresence>
+          {notifications.map((note, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: 50, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.95 }}
+              className="glass border-brand/20 p-4 rounded-2xl shadow-2xl flex items-center gap-4 min-w-[300px] pointer-events-auto"
+            >
+              <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center border border-brand/20">
+                <Bell className="w-5 h-5 text-brand animate-bounce" />
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-1">Match Alert</p>
+                <p className="text-xs font-bold text-slate-700 leading-tight">{note}</p>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
       {/* Background Pattern */}
       <div className="fixed inset-0 bg-[linear-gradient(to_right,#0ea5e908_1px,transparent_1px),linear-gradient(to_bottom,#0ea5e908_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
@@ -379,6 +640,18 @@ export default function App() {
                 Football
               </span>
               <span 
+                onClick={() => setSelectedSport("baseball")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "baseball" && "text-brand")}
+              >
+                Baseball
+              </span>
+              <span 
+                onClick={() => setSelectedSport("cricket")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "cricket" && "text-brand")}
+              >
+                Cricket
+              </span>
+              <span 
                 onClick={() => setSelectedSport("basketball")}
                 className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "basketball" && "text-brand")}
               >
@@ -400,18 +673,31 @@ export default function App() {
 
             <div className="flex items-center gap-6 shrink-0">
               {user ? (
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                   <div className="flex flex-col items-end">
-                    <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">{user.displayName}</span>
-                    <button onClick={logout} className="text-[9px] font-bold text-slate-400 uppercase hover:text-red-500 transition-colors">Logout</button>
-                  </div>
-                  {user.photoURL ? (
-                    <img src={user.photoURL} alt="Profile" className="w-8 h-8 rounded-full border border-sky-100" referrerPolicy="no-referrer" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-sky-50 flex items-center justify-center border border-sky-100">
-                      <User className="w-4 h-4 text-brand" />
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[9px] font-black px-1.5 py-0">
+                        {userProfile?.points || 0} PTS
+                      </Badge>
+                      <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">{userProfile?.displayName || user.displayName}</span>
                     </div>
-                  )}
+                    <div className="flex gap-2">
+                      <button onClick={() => setIsProfileOpen(true)} className="text-[9px] font-bold text-brand uppercase hover:underline transition-colors">Profile</button>
+                      <button onClick={logout} className="text-[9px] font-bold text-slate-400 uppercase hover:text-red-500 transition-colors">Logout</button>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsProfileOpen(true)} className="relative group">
+                    {userProfile?.photoURL || user.photoURL ? (
+                      <img src={userProfile?.photoURL || user.photoURL || ""} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white shadow-sm group-hover:border-brand transition-all" referrerPolicy="no-referrer" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-sky-50 flex items-center justify-center border-2 border-white shadow-sm group-hover:border-brand transition-all">
+                        <User className="w-5 h-5 text-brand" />
+                      </div>
+                    )}
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand rounded-full border-2 border-white flex items-center justify-center">
+                      <Settings className="w-2 h-2 text-white" />
+                    </div>
+                  </button>
                 </div>
               ) : (
                 <button 
@@ -423,9 +709,19 @@ export default function App() {
               )}
             </div>
 
-            <Badge variant="outline" className="border-brand/30 text-brand bg-brand/5 px-3 py-1 rounded-full">
-              <div className="w-1.5 h-1.5 rounded-full bg-brand mr-2 animate-pulse" />
-              <span className="text-[10px] font-bold tracking-widest uppercase">Live Engine Active</span>
+            <Badge variant="outline" className={cn(
+              "px-3 py-1 rounded-full transition-all",
+              matches.some(m => m.id.startsWith("real-")) 
+                ? "border-green-500/30 text-green-600 bg-green-50" 
+                : "border-brand/30 text-brand bg-brand/5"
+            )}>
+              <div className={cn(
+                "w-1.5 h-1.5 rounded-full mr-2 animate-pulse",
+                matches.some(m => m.id.startsWith("real-")) ? "bg-green-500" : "bg-brand"
+              )} />
+              <span className="text-[10px] font-bold tracking-widest uppercase">
+                {matches.some(m => m.id.startsWith("real-")) ? "Real-World Data Active" : "Live Engine Active"}
+              </span>
             </Badge>
 
             {isAiThrottled && (
@@ -460,16 +756,126 @@ export default function App() {
               ))
             ) : (
               <>
-                {/* Live Section */}
+                {/* Cricket Section (Real-World) */}
+                {(selectedSport === "all" || selectedSport === "cricket") && matches.filter(m => m.sport === 'cricket' && m.status === 'live').length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2 px-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                      Live Cricket
+                    </h3>
+                    <div className="space-y-4">
+                      {matches
+                        .filter(m => m.sport === 'cricket' && m.status === 'live')
+                        .map((match) => (
+                          <motion.div
+                            key={match.id}
+                            layoutId={match.id}
+                            onClick={() => setSelectedMatchId(match.id)}
+                            className={cn(
+                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                              selectedMatchId === match.id
+                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                : "glass-hover"
+                            )}
+                          >
+                            <div className="flex justify-between items-center mb-4 relative z-10">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                  Cricbuzz • Live
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-3 relative z-10">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold tracking-tight text-slate-900">{match.homeTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold tracking-tight text-slate-900">{match.awayTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Baseball Section (Real-World) */}
+                {(selectedSport === "all" || selectedSport === "baseball") && matches.filter(m => m.sport === 'baseball' && m.status === 'live').length > 0 && (
+                  <div className="space-y-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2 px-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                      Live Baseball
+                    </h3>
+                    <div className="space-y-4">
+                      {matches
+                        .filter(m => m.sport === 'baseball' && m.status === 'live')
+                        .map((match) => (
+                          <motion.div
+                            key={match.id}
+                            layoutId={match.id}
+                            onClick={() => setSelectedMatchId(match.id)}
+                            className={cn(
+                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                              selectedMatchId === match.id
+                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                : "glass-hover"
+                            )}
+                          >
+                            <div className="flex justify-between items-center mb-4 relative z-10">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                  MLB • Live
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-3 relative z-10">
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold tracking-tight text-slate-900">{match.homeTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="font-bold tracking-tight text-slate-900">{match.awayTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Live Section (Football & Others) */}
                 <div className="space-y-4">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 flex items-center gap-2 px-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    Live Now
+                    {selectedSport === "all" ? "Other Live Matches" : `Live ${selectedSport}`}
                   </h3>
                   <div className="space-y-4">
-                    {matches.filter(m => m.status === 'live' && (selectedSport === "all" || m.sport === selectedSport)).length > 0 ? (
+                    {matches.filter(m => 
+                      m.status === 'live' && 
+                      (selectedSport === "all" 
+                        ? (m.sport !== 'cricket' && m.sport !== 'baseball') 
+                        : m.sport === selectedSport)
+                    ).length > 0 ? (
                       matches
-                        .filter(m => m.status === 'live' && (selectedSport === "all" || m.sport === selectedSport))
+                        .filter(m => 
+                          m.status === 'live' && 
+                          (selectedSport === "all" 
+                            ? (m.sport !== 'cricket' && m.sport !== 'baseball') 
+                            : m.sport === selectedSport)
+                        )
                         .map((match) => (
                           <motion.div
                             key={match.id}
@@ -499,7 +905,23 @@ export default function App() {
                                   {match.sport} • {match.status === 'live' ? "In Play" : match.status}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFavorite(match.id);
+                                  }}
+                                  className={cn(
+                                    "p-1.5 rounded-full transition-all duration-300",
+                                    userProfile?.favorites?.includes(match.id)
+                                      ? "text-red-500 bg-red-50"
+                                      : "text-slate-300 hover:text-red-400 hover:bg-slate-50"
+                                  )}
+                                >
+                                  <Heart className={cn("w-3.5 h-3.5", userProfile?.favorites?.includes(match.id) && "fill-current")} />
+                                </button>
+                                <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              </div>
                             </div>
                             
                             <div className="space-y-3 relative z-10">
@@ -564,7 +986,23 @@ export default function App() {
                                   {match.sport} • {match.status === 'live' ? "In Play" : match.status}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFavorite(match.id);
+                                  }}
+                                  className={cn(
+                                    "p-1.5 rounded-full transition-all duration-300",
+                                    userProfile?.favorites?.includes(match.id)
+                                      ? "text-red-500 bg-red-50"
+                                      : "text-slate-300 hover:text-red-400 hover:bg-slate-50"
+                                  )}
+                                >
+                                  <Heart className={cn("w-3.5 h-3.5", userProfile?.favorites?.includes(match.id) && "fill-current")} />
+                                </button>
+                                <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              </div>
                             </div>
                             
                             <div className="space-y-3 relative z-10">
@@ -629,7 +1067,23 @@ export default function App() {
                                   {match.sport} • {match.status === 'live' ? "In Play" : match.status}
                                 </span>
                               </div>
-                              <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleFavorite(match.id);
+                                  }}
+                                  className={cn(
+                                    "p-1.5 rounded-full transition-all duration-300",
+                                    userProfile?.favorites?.includes(match.id)
+                                      ? "text-red-500 bg-red-50"
+                                      : "text-slate-300 hover:text-red-400 hover:bg-slate-50"
+                                  )}
+                                >
+                                  <Heart className={cn("w-3.5 h-3.5", userProfile?.favorites?.includes(match.id) && "fill-current")} />
+                                </button>
+                                <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                              </div>
                             </div>
                             
                             <div className="space-y-3 relative z-10">
@@ -660,19 +1114,33 @@ export default function App() {
           </div>
         </div>
 
-        {/* Main Content: Match Details */}
+        {/* Main Content */}
         <div className="lg:col-span-8">
-          {selectedMatch ? (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedMatch.id}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -30 }}
-                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-                className="space-y-10"
-              >
-                {/* Cinematic Scoreboard */}
+          <Tabs defaultValue="matches" className="w-full">
+            <TabsList className="glass p-1.5 rounded-2xl w-full flex justify-start h-auto gap-1 mb-8">
+              <TabsTrigger value="matches" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
+                <Trophy className="w-4 h-4 mr-2" /> Matches
+              </TabsTrigger>
+              <TabsTrigger value="social" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
+                <Share2 className="w-4 h-4 mr-2" /> Social Feed
+              </TabsTrigger>
+              <TabsTrigger value="leaderboard" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
+                <TrendingUp className="w-4 h-4 mr-2" /> Leaderboard
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="matches" className="outline-none">
+              {selectedMatch ? (
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={selectedMatch.id}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -30 }}
+                    transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                    className="space-y-10"
+                  >
+                    {/* Cinematic Scoreboard */}
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 via-transparent to-brand/20 rounded-[2rem] blur-2xl opacity-30 group-hover:opacity-50 transition duration-1000" />
                   <Card className="glass border-sky-100 rounded-[2rem] overflow-hidden relative inner-glow">
@@ -746,6 +1214,9 @@ export default function App() {
                         </TabsTrigger>
                         <TabsTrigger value="prediction" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
                           <Zap className="w-4 h-4 mr-2" /> Predictions
+                        </TabsTrigger>
+                        <TabsTrigger value="chat" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
+                          <MessageSquare className="w-4 h-4 mr-2" /> Fan Chat
                         </TabsTrigger>
                       </TabsList>
 
@@ -933,11 +1404,114 @@ export default function App() {
                         </div>
                       </div>
                     )}
+
+                    {/* User Prediction Form */}
+                    <Card className="glass border-sky-100 rounded-3xl overflow-hidden mt-8">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Make Your Prediction</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {user ? (
+                          <form onSubmit={makePrediction} className="flex gap-4">
+                            <div className="flex-1">
+                              <Input 
+                                placeholder="e.g. 2-1" 
+                                value={myPrediction}
+                                onChange={(e) => setMyPrediction(e.target.value)}
+                                className="bg-white/50 border-slate-200 rounded-xl"
+                              />
+                            </div>
+                            <button 
+                              type="submit"
+                              disabled={!myPrediction.trim()}
+                              className="bg-brand text-white px-6 py-2 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-brand/90 disabled:opacity-50 transition-all shadow-lg shadow-brand/20"
+                            >
+                              Predict
+                            </button>
+                          </form>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">Login to make predictions and earn points!</p>
+                        )}
+                      </CardContent>
+                    </Card>
                   </TabsContent>
-                </Tabs>
-              </div>
-            </motion.div>
-          </AnimatePresence>
+                  <TabsContent value="chat" className="mt-8 outline-none">
+                      <Card className="glass border-sky-100 rounded-3xl overflow-hidden flex flex-col h-[500px]">
+                        <ScrollArea className="flex-1 p-6">
+                          <div className="space-y-6">
+                            {messages.length > 0 ? (
+                              messages.map((msg) => (
+                                <div key={msg.id} className={cn(
+                                  "flex items-start gap-3",
+                                  msg.userId === user?.uid ? "flex-row-reverse" : "flex-row"
+                                )}>
+                                  <div className="w-8 h-8 rounded-full bg-slate-100 flex-shrink-0 flex items-center justify-center border border-slate-200 overflow-hidden">
+                                    {msg.userPhoto ? (
+                                      <img src={msg.userPhoto} alt={msg.userName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                                    ) : (
+                                      <User className="w-4 h-4 text-slate-400" />
+                                    )}
+                                  </div>
+                                  <div className={cn(
+                                    "max-w-[80%] space-y-1",
+                                    msg.userId === user?.uid ? "items-end" : "items-start"
+                                  )}>
+                                    <div className="flex items-center gap-2 px-1">
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{msg.userName}</span>
+                                      <span className="text-[8px] text-slate-300">{new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    </div>
+                                    <div className={cn(
+                                      "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                                      msg.userId === user?.uid 
+                                        ? "bg-brand text-white rounded-tr-none" 
+                                        : "bg-slate-50 text-slate-700 border border-slate-100 rounded-tl-none"
+                                    )}>
+                                      {msg.text}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="flex flex-col items-center justify-center h-80 text-slate-200 space-y-4">
+                                <MessageSquare className="w-12 h-12 stroke-[1]" />
+                                <p className="text-xs font-bold uppercase tracking-[0.2em]">Start the conversation</p>
+                              </div>
+                            )}
+                          </div>
+                        </ScrollArea>
+                        <div className="p-4 bg-slate-50/50 border-t border-slate-100">
+                          {user ? (
+                            <form onSubmit={sendMessage} className="flex gap-2">
+                              <input
+                                type="text"
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                placeholder="Write a message..."
+                                className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all"
+                              />
+                              <button
+                                type="submit"
+                                disabled={!newMessage.trim()}
+                                className="bg-brand text-white p-2.5 rounded-xl hover:bg-brand/90 disabled:opacity-50 transition-all shadow-lg shadow-brand/20"
+                              >
+                                <Send className="w-4 h-4" />
+                              </button>
+                            </form>
+                          ) : (
+                            <button
+                              onClick={login}
+                              className="w-full py-2.5 bg-brand text-white rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-brand/90 transition-all"
+                            >
+                              Login to Chat
+                            </button>
+                          )}
+                        </div>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </motion.div>
+            </AnimatePresence>
           ) : (
             <div className="flex flex-col items-center justify-center h-[600px] glass rounded-[3rem] text-slate-100 space-y-8 border-dashed">
               <div className="w-32 h-32 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100">
@@ -949,8 +1523,226 @@ export default function App() {
               </div>
             </div>
           )}
-        </div>
-      </main>
+        </TabsContent>
+
+        <TabsContent value="social" className="outline-none">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between px-2">
+              <h2 className="text-xs font-black uppercase tracking-[0.2em] text-slate-400">Global Social Feed</h2>
+              <Badge variant="outline" className="bg-brand/5 text-brand border-brand/20 text-[10px] font-bold">
+                {socialEvents.length} Recent Activities
+              </Badge>
+            </div>
+            <ScrollArea className="h-[700px] pr-4">
+              <div className="space-y-4">
+                {socialEvents.map((event, i) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <Card className="glass border-sky-100 rounded-2xl overflow-hidden glass-hover">
+                      <CardContent className="p-4 flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-sky-50 flex items-center justify-center border border-sky-100 overflow-hidden shrink-0">
+                          {event.userPhoto ? (
+                            <img src={event.userPhoto} alt={event.userName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center bg-brand/10">
+                              {event.type === 'match_event' ? <Activity className="w-5 h-5 text-brand" /> : <User className="w-5 h-5 text-brand" />}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-slate-900">{event.userName || "Match Engine"}</span>
+                            <span className="text-[10px] text-slate-400">{new Date(event.timestamp).toLocaleTimeString()}</span>
+                          </div>
+                          <p className="text-sm text-slate-600 leading-relaxed">
+                            {event.type === 'match_event' && <span className="text-brand font-bold mr-2">[{event.matchName}]</span>}
+                            {event.content}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="leaderboard" className="outline-none">
+          <div className="space-y-8">
+            <div className="text-center space-y-4 py-8">
+              <div className="w-20 h-20 bg-amber-100 rounded-3xl mx-auto flex items-center justify-center border-4 border-white shadow-xl rotate-6">
+                <Award className="w-10 h-10 text-amber-600" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Global Leaderboard</h2>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Top Predictors & Analysts</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4">
+              {leaderboard.map((profile, i) => (
+                <motion.div
+                  key={profile.uid}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <div className={cn(
+                    "flex items-center gap-6 p-4 rounded-2xl border transition-all",
+                    i === 0 ? "bg-amber-50/50 border-amber-200 shadow-lg shadow-amber-500/5" : "glass border-sky-100"
+                  )}>
+                    <div className="w-8 text-center">
+                      <span className={cn(
+                        "text-lg font-black font-display",
+                        i === 0 ? "text-amber-600" : i === 1 ? "text-slate-400" : i === 2 ? "text-amber-800" : "text-slate-300"
+                      )}>#{i + 1}</span>
+                    </div>
+                    <div className="w-12 h-12 rounded-full bg-white border-2 border-slate-100 overflow-hidden shrink-0">
+                      {profile.photoURL ? (
+                        <img src={profile.photoURL} alt={profile.displayName} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-sky-50">
+                          <User className="w-6 h-6 text-brand" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-bold text-slate-900">{profile.displayName}</h4>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-widest line-clamp-1">{profile.bio || "No bio yet"}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xl font-black text-slate-900 tabular-nums">{profile.points}</div>
+                      <div className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">Points</div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </TabsContent>
+      </Tabs>
+    </div>
+  </main>
+
+  {/* Profile Modal */}
+  <AnimatePresence>
+    {isProfileOpen && userProfile && (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={() => setIsProfileOpen(false)}
+          className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+        />
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.9, y: 20 }}
+          className="relative w-full max-w-lg glass border-sky-100 rounded-[2.5rem] overflow-hidden shadow-2xl"
+        >
+          <div className="p-8 md:p-10 space-y-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">User Profile</h2>
+              <button onClick={() => setIsProfileOpen(false)} className="text-slate-400 hover:text-slate-900 transition-colors">
+                <Zap className="w-6 h-6 rotate-45" />
+              </button>
+            </div>
+
+            <form onSubmit={updateProfile} className="space-y-6">
+              <div className="flex items-center gap-6">
+                <div className="w-20 h-20 rounded-full bg-sky-50 border-2 border-white shadow-lg overflow-hidden shrink-0">
+                  {profileForm.photoURL ? (
+                    <img src={profileForm.photoURL} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-brand/10">
+                      <User className="w-10 h-10 text-brand" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Profile Photo URL</Label>
+                  <Input 
+                    value={profileForm.photoURL}
+                    onChange={(e) => setProfileForm(prev => ({ ...prev, photoURL: e.target.value }))}
+                    placeholder="https://..."
+                    className="bg-white/50 border-slate-200 rounded-xl text-xs"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Display Name</Label>
+                <Input 
+                  value={profileForm.displayName}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, displayName: e.target.value }))}
+                  className="bg-white/50 border-slate-200 rounded-xl"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bio</Label>
+                <Textarea 
+                  value={profileForm.bio}
+                  onChange={(e) => setProfileForm(prev => ({ ...prev, bio: e.target.value }))}
+                  className="bg-white/50 border-slate-200 rounded-xl min-h-[100px]"
+                  placeholder="Tell the world about your analysis style..."
+                />
+              </div>
+
+              <Separator className="bg-slate-100" />
+
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Notification Settings</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-xs font-bold text-slate-600">Goals</Label>
+                    <Switch 
+                      checked={userProfile.notificationSettings.goals} 
+                      onCheckedChange={(v) => updateNotificationSettings("goals", v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-xs font-bold text-slate-600">Cards</Label>
+                    <Switch 
+                      checked={userProfile.notificationSettings.cards} 
+                      onCheckedChange={(v) => updateNotificationSettings("cards", v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-xs font-bold text-slate-600">Match Start</Label>
+                    <Switch 
+                      checked={userProfile.notificationSettings.matchStart} 
+                      onCheckedChange={(v) => updateNotificationSettings("matchStart", v)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <Label className="text-xs font-bold text-slate-600">Match End</Label>
+                    <Switch 
+                      checked={userProfile.notificationSettings.matchEnd} 
+                      onCheckedChange={(v) => updateNotificationSettings("matchEnd", v)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button 
+                type="submit"
+                className="w-full bg-brand text-white py-4 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-brand/90 transition-all shadow-xl shadow-brand/20"
+              >
+                Save Changes
+              </button>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    )}
+  </AnimatePresence>
 
       {/* Footer Ticker */}
       <footer className="fixed bottom-0 left-0 right-0 bg-brand text-white py-3 overflow-hidden z-50 shadow-[0_-10px_40px_rgba(14,165,233,0.2)]">

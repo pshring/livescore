@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import admin from "firebase-admin";
+import axios from "axios";
 import { getFirestore } from "firebase-admin/firestore";
 import firebaseConfig from "./firebase-applet-config.json" assert { type: "json" };
 
@@ -55,7 +56,7 @@ const __dirname = path.dirname(__filename);
 
 interface Match {
   id: string;
-  sport: "football" | "basketball" | "tennis" | "formula1";
+  sport: "football" | "basketball" | "tennis" | "formula1" | "baseball" | "cricket";
   homeTeam: string;
   awayTeam: string;
   homeScore: number;
@@ -186,6 +187,180 @@ function getFallbackCommentary() {
   return fallbackCommentaries[Math.floor(Math.random() * fallbackCommentaries.length)];
 }
 
+async function fetchOpenLigaMatches() {
+  try {
+    // OpenLigaDB is a free API for German Bundesliga
+    const response = await axios.get("https://api.openligadb.de/getmatchdata/bl1", { timeout: 5000 });
+    const data = response.data;
+    if (!Array.isArray(data)) return null;
+
+    // Filter for matches that are currently live or very recent
+    return data
+      .filter((m: any) => m.matchIsFinished === false)
+      .map((m: any) => ({
+        id: `real-ol-${m.matchID}`,
+        sport: "football",
+        homeTeam: m.team1.teamName,
+        awayTeam: m.team2.teamName,
+        homeScore: m.matchResults?.[0]?.pointsTeam1 ?? 0,
+        awayScore: m.matchResults?.[0]?.pointsTeam2 ?? 0,
+        status: "live",
+        time: "Live",
+        events: []
+      })) as Match[];
+  } catch (error) {
+    console.error("OpenLigaDB Fetch Error:", error instanceof Error ? error.message : "Unknown error");
+    return null;
+  }
+}
+
+async function fetchBaseballMatches() {
+  const KEY = "af98a0eabbmshbaf584a02f620b5p1df683jsnd0ebaa907c01";
+  const HOST = "sportapi7.p.rapidapi.com";
+
+  try {
+    const response = await axios.get("https://sportapi7.p.rapidapi.com/api/v1/sport/baseball/events/live", {
+      headers: { "x-rapidapi-key": KEY, "x-rapidapi-host": HOST },
+      timeout: 8000
+    });
+
+    const events = response.data.events;
+    if (!Array.isArray(events)) return [];
+
+    return events.map((e: any) => ({
+      id: `real-sa-bb-${e.id}`,
+      sport: "baseball",
+      homeTeam: e.homeTeam.name,
+      awayTeam: e.awayTeam.name,
+      homeScore: e.homeScore.current ?? 0,
+      awayScore: e.awayScore.current ?? 0,
+      status: "live",
+      time: e.status.description || "Live",
+      events: []
+    })) as Match[];
+  } catch (error) {
+    console.error("Baseball API Error:", error instanceof Error ? error.message : "Unknown error");
+    return [];
+  }
+}
+
+async function fetchCricketMatches() {
+  const KEY = "af98a0eabbmshbaf584a02f620b5p1df683jsnd0ebaa907c01";
+  const HOST = "cricbuzz-cricket.p.rapidapi.com";
+
+  try {
+    // Cricbuzz live matches list endpoint
+    const response = await axios.get("https://cricbuzz-cricket.p.rapidapi.com/matches/v1/live", {
+      headers: { "x-rapidapi-key": KEY, "x-rapidapi-host": HOST },
+      timeout: 8000
+    });
+
+    const matchesData = response.data.typeMatches;
+    if (!Array.isArray(matchesData)) return [];
+
+    const cricketMatches: Match[] = [];
+    matchesData.forEach((type: any) => {
+      if (type.seriesMatches) {
+        type.seriesMatches.forEach((series: any) => {
+          if (series.seriesAdWrapper && series.seriesAdWrapper.matches) {
+            series.seriesAdWrapper.matches.forEach((m: any) => {
+              const matchInfo = m.matchInfo;
+              const matchScore = m.matchScore;
+              if (matchInfo && matchScore) {
+                cricketMatches.push({
+                  id: `real-cb-${matchInfo.matchId}`,
+                  sport: "cricket",
+                  homeTeam: matchInfo.team1.teamName,
+                  awayTeam: matchInfo.team2.teamName,
+                  // Cricket scores are complex (runs/wickets), we'll simplify for the UI score slots
+                  homeScore: matchScore.team1Score?.inngs1?.runs ?? 0,
+                  awayScore: matchScore.team2Score?.inngs1?.runs ?? 0,
+                  status: "live",
+                  time: matchInfo.status || "Live",
+                  events: []
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    return cricketMatches;
+  } catch (error) {
+    console.error("Cricket API Error:", error instanceof Error ? error.message : "Unknown error");
+    return [];
+  }
+}
+
+async function fetchRealWorldMatches() {
+  const RAPIDAPI_KEY = process.env.RAPIDAPI_KEY || process.env.VITE_RAPIDAPI_KEY;
+  
+  // Fetch from all sources in parallel
+  const [baseballMatches, cricketMatches, footballMatches, openLigaMatches] = await Promise.all([
+    fetchBaseballMatches(),
+    fetchCricketMatches(),
+    (async () => {
+      if (!RAPIDAPI_KEY || RAPIDAPI_KEY.trim() === "" || RAPIDAPI_KEY.includes("TODO")) return [];
+      const key = RAPIDAPI_KEY.trim();
+      
+      // Strategy 1: RapidAPI
+      try {
+        const response = await axios.get("https://api-football-v1.p.rapidapi.com/v3/fixtures", {
+          params: { live: "all" },
+          headers: { "X-RapidAPI-Key": key, "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com" },
+          timeout: 8000
+        });
+        if (response.data.response && Array.isArray(response.data.response)) {
+          return mapFixtures(response.data.response);
+        }
+      } catch (error: any) {
+        // If 403, try Strategy 2: Direct API-Sports
+        if (error.response?.status === 403) {
+          try {
+            const response = await axios.get("https://v3.football.api-sports.io/fixtures", {
+              params: { live: "all" },
+              headers: { "x-apisports-key": key },
+              timeout: 8000
+            });
+            if (response.data.response && Array.isArray(response.data.response)) {
+              return mapFixtures(response.data.response);
+            }
+          } catch (e) {
+            console.warn("API-Football: 403 on all hosts.");
+          }
+        }
+      }
+      return [];
+    })(),
+    fetchOpenLigaMatches()
+  ]);
+
+  // Combine all real-world matches
+  const allRealMatches = [
+    ...(baseballMatches || []),
+    ...(cricketMatches || []),
+    ...(footballMatches || []),
+    ...(openLigaMatches || [])
+  ];
+
+  return allRealMatches.length > 0 ? allRealMatches : null;
+}
+
+function mapFixtures(fixtures: any[]) {
+  return fixtures.map((f: any) => ({
+    id: `real-${f.fixture.id}`,
+    sport: "football",
+    homeTeam: f.teams.home.name,
+    awayTeam: f.teams.away.name,
+    homeScore: f.goals.home ?? 0,
+    awayScore: f.goals.away ?? 0,
+    status: "live",
+    time: `${f.fixture.status.elapsed}'`,
+    events: []
+  })) as Match[];
+}
+
 async function startServer() {
   const app = express();
   const httpServer = createServer(app);
@@ -198,6 +373,17 @@ async function startServer() {
   // API Routes
   app.get("/api/matches", (req, res) => {
     res.json(matches);
+  });
+
+  app.get("/api/debug/sports", (req, res) => {
+    const key = process.env.RAPIDAPI_KEY || process.env.VITE_RAPIDAPI_KEY;
+    res.json({
+      configured: !!key && key.trim() !== "",
+      keyPrefix: key ? `${key.substring(0, 4)}****` : null,
+      host: "api-football-v1.p.rapidapi.com",
+      lastError: null, // We could store this in a variable
+      simulationActive: matches.filter(m => !m.id.startsWith("real-")).length > 0
+    });
   });
 
   // Initial Seed to Firestore
@@ -215,9 +401,36 @@ async function startServer() {
     }
   }
 
+  // Real-world API Fetch Loop
+  setInterval(async () => {
+    const realMatches = await fetchRealWorldMatches();
+    if (realMatches && realMatches.length > 0) {
+      console.log(`Fetched ${realMatches.length} real-world matches.`);
+      
+      // Merge real matches into the local matches array
+      // We keep simulated matches but prioritize real ones for live data
+      realMatches.forEach(real => {
+        const index = matches.findIndex(m => m.id === real.id);
+        if (index !== -1) {
+          matches[index] = { ...matches[index], ...real };
+        } else {
+          matches.push(real);
+        }
+      });
+
+      // Broadcast updates
+      realMatches.forEach(match => {
+        io.emit("matchUpdate", match);
+        if (db) {
+          db.collection("matches").doc(match.id).set(match, { merge: true });
+        }
+      });
+    }
+  }, 30000); // Fetch every 30 seconds
+
   // Simulation Loop for Score Events
   setInterval(async () => {
-    const liveMatches = matches.filter(m => m.status === "live");
+    const liveMatches = matches.filter(m => m.status === "live" && !m.id.startsWith("real-"));
     if (liveMatches.length === 0) return;
 
     // Update clocks for all live matches
@@ -291,6 +504,17 @@ async function startServer() {
 
       matchToUpdate.events.unshift(newEvent);
       io.emit("newEvent", { matchId: matchToUpdate.id, event: newEvent });
+
+      // Write to social feed
+      if (db) {
+        db.collection("social_events").add({
+          type: "match_event",
+          matchId: matchToUpdate.id,
+          matchName: `${matchToUpdate.homeTeam} vs ${matchToUpdate.awayTeam}`,
+          content: desc,
+          timestamp: Date.now()
+        }).catch(err => console.error("Social Event Error:", err));
+      }
     }
     
     // Sync to Firestore
@@ -329,7 +553,40 @@ async function startServer() {
       io.emit("matchUpdate", matchToFinish);
       
       if (db) {
-        db.collection("matches").doc(matchToFinish.id).set(matchToFinish, { merge: true });
+        const matchRef = db.collection("matches").doc(matchToFinish.id);
+        matchRef.set(matchToFinish, { merge: true });
+
+        // Calculate prediction points
+        const actualScore = `${matchToFinish.homeScore}-${matchToFinish.awayScore}`;
+        db.collection("predictions")
+          .where("matchId", "==", matchToFinish.id)
+          .get()
+          .then(snapshot => {
+            snapshot.forEach(async (doc) => {
+              const prediction = doc.data();
+              let pointsEarned = 0;
+              if (prediction.predictedScore === actualScore) {
+                pointsEarned = 10; // Exact score
+              } else {
+                // Check if result (win/draw/loss) is correct
+                const [pHome, pAway] = prediction.predictedScore.split("-").map(Number);
+                const [aHome, aAway] = actualScore.split("-").map(Number);
+                const pResult = pHome > pAway ? 1 : pHome < pAway ? -1 : 0;
+                const aResult = aHome > aAway ? 1 : aHome < aAway ? -1 : 0;
+                if (pResult === aResult) pointsEarned = 5;
+              }
+
+              if (pointsEarned > 0) {
+                await doc.ref.update({ actualScore, pointsEarned });
+                await db!.collection("users").doc(prediction.userId).update({
+                  points: admin.firestore.FieldValue.increment(pointsEarned)
+                });
+              } else {
+                await doc.ref.update({ actualScore, pointsEarned: 0 });
+              }
+            });
+          })
+          .catch(err => console.error("Prediction Points Error:", err));
       }
     }
   }, 5000); // Update every 5 seconds for a more "live" feel
