@@ -6,8 +6,49 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import admin from "firebase-admin";
+import { getFirestore } from "firebase-admin/firestore";
+import firebaseConfig from "./firebase-applet-config.json" assert { type: "json" };
 
 dotenv.config();
+
+// Initialize Firebase Admin
+let db: admin.firestore.Firestore | null = null;
+
+if (!admin.apps.length) {
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  if (privateKey) {
+    try {
+      // Robust private key parsing
+      let formattedKey = privateKey.trim();
+      
+      // Remove surrounding quotes if present
+      if (formattedKey.startsWith('"') && formattedKey.endsWith('"')) {
+        formattedKey = formattedKey.slice(1, -1);
+      } else if (formattedKey.startsWith("'") && formattedKey.endsWith("'")) {
+        formattedKey = formattedKey.slice(1, -1);
+      }
+      
+      // Handle escaped newlines (literal \n)
+      formattedKey = formattedKey.replace(/\\n/g, '\n');
+      
+      const app = admin.initializeApp({
+        credential: admin.credential.cert({
+          projectId: firebaseConfig.projectId,
+          clientEmail: "firebase-adminsdk-fbsvc@gen-lang-client-0579330806.iam.gserviceaccount.com",
+          privateKey: formattedKey,
+        }),
+        databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`
+      });
+      db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+      console.log(`Firebase Admin initialized successfully for database: ${firebaseConfig.firestoreDatabaseId}`);
+    } catch (error) {
+      console.error("Firebase Admin initialization failed:", error);
+    }
+  } else {
+    console.warn("FIREBASE_PRIVATE_KEY not found. Server will run without Firestore persistence.");
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -103,22 +144,59 @@ async function startServer() {
     res.json(matches);
   });
 
+  // Initial Seed to Firestore
+  if (db) {
+    try {
+      const matchesCol = db.collection("matches");
+      const snapshot = await matchesCol.limit(1).get();
+      if (snapshot.empty) {
+        console.log("Seeding initial matches to Firestore...");
+        const batch = db.batch();
+        matches.forEach(match => {
+          batch.set(matchesCol.doc(match.id), match);
+        });
+        await batch.commit();
+      }
+    } catch (error) {
+      console.error("Initial seeding failed:", error);
+    }
+  }
+
   // Simulation Loop for Score Events
   setInterval(async () => {
     const liveMatches = matches.filter(m => m.status === "live");
     if (liveMatches.length === 0) return;
 
+    // Update clocks for all live matches
+    liveMatches.forEach(match => {
+      if (match.sport === "football") {
+        const mins = parseInt(match.time);
+        if (mins < 90) match.time = `${mins + 1}'`;
+      } else {
+        // Basketball time update: Q4 4:20 -> Q4 4:19
+        const parts = match.time.split(" ");
+        if (parts.length === 2) {
+          const timeParts = parts[1].split(":");
+          let mins = parseInt(timeParts[0]);
+          let secs = parseInt(timeParts[1]);
+          if (secs > 0) secs--;
+          else if (mins > 0) { mins--; secs = 59; }
+          match.time = `${parts[0]} ${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+      }
+    });
+
     const matchToUpdate = liveMatches[Math.floor(Math.random() * liveMatches.length)];
     
-    // Random scoring event (less frequent now to balance with flavor commentary)
+    // Random scoring event
     const rand = Math.random();
-    if (rand > 0.85) {
+    if (rand > 0.7) {
       const isHome = Math.random() > 0.5;
       let eventType = "Action";
       let desc = "";
 
       if (matchToUpdate.sport === "football") {
-        if (Math.random() > 0.8) {
+        if (Math.random() > 0.7) {
           eventType = "Goal";
           if (isHome) matchToUpdate.homeScore++;
           else matchToUpdate.awayScore++;
@@ -140,17 +218,34 @@ async function startServer() {
         time: matchToUpdate.time,
         type: eventType,
         description: desc,
-        aiCommentary: getFallbackCommentary() // Initial fallback, client will override with AI
+        aiCommentary: getFallbackCommentary()
       };
 
       matchToUpdate.events.unshift(newEvent);
-      
-      io.emit("matchUpdate", matchToUpdate);
       io.emit("newEvent", { matchId: matchToUpdate.id, event: newEvent });
     }
-  }, 10000);
+    
+    // Sync to Firestore
+    if (db) {
+      try {
+        const batch = db.batch();
+        liveMatches.forEach(match => {
+          const matchRef = db!.collection("matches").doc(match.id);
+          batch.set(matchRef, match, { merge: true });
+        });
+        await batch.commit();
+      } catch (error) {
+        console.error("Firestore Sync Error:", error);
+      }
+    }
 
-  // Flavor Commentary Loop (Every 2.5 minutes)
+    // Emit updates for ALL live matches to keep clocks in sync
+    liveMatches.forEach(match => {
+      io.emit("matchUpdate", match);
+    });
+  }, 5000); // Update every 5 seconds for a more "live" feel
+
+  // Flavor Commentary Loop (Every 5 minutes)
   setInterval(async () => {
     const liveMatches = matches.filter(m => m.status === "live");
     for (const match of liveMatches) {
@@ -166,7 +261,7 @@ async function startServer() {
       
       io.emit("matchUpdate", match);
     }
-  }, 150000); // 150 seconds = 2.5 minutes
+  }, 300000); // 300 seconds = 5 minutes
 
   // Vite middleware
   if (process.env.NODE_ENV !== "production") {

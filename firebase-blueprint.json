@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "Match": {
+      "title": "Match",
+      "description": "A sports match with live score and events",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sport": { "type": "string" },
+        "homeTeam": { "type": "string" },
+        "awayTeam": { "type": "string" },
+        "homeScore": { "type": "number" },
+        "awayScore": { "type": "number" },
+        "status": { "type": "string", "enum": ["live", "scheduled", "finished"] },
+        "time": { "type": "string" },
+        "events": {
+          "type": "array",
+          "items": { "$ref": "MatchEvent" }
+        },
+        "prediction": { "type": "string" }
+      },
+      "required": ["id", "sport", "homeTeam", "awayTeam", "homeScore", "awayScore", "status", "time"]
+    },
+    "MatchEvent": {
+      "title": "MatchEvent",
+      "description": "An event occurring during a match",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "time": { "type": "string" },
+        "type": { "type": "string" },
+        "description": { "type": "string" },
+        "aiCommentary": { "type": "string" }
+      },
+      "required": ["id", "time", "type", "description"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the application",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] }
+      },
+      "required": ["uid", "email"]
+    }
+  },
+  "firestore": {
+    "/matches/{matchId}": {
+      "schema": "Match",
+      "description": "Collection of sports matches"
+    },
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    }
+  }
+}
