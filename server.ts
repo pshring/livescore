@@ -63,6 +63,7 @@ interface Match {
   status: "live" | "scheduled" | "finished";
   time: string;
   events: MatchEvent[];
+  prediction?: string;
 }
 
 interface MatchEvent {

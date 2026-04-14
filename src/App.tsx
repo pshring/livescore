@@ -158,9 +158,16 @@ export default function App() {
     try {
       const q = query(collection(db, "matches"));
       unsubscribeMatches = onSnapshot(q, (snapshot) => {
-        const matchesData = snapshot.docs.map(doc => doc.data() as Match);
+        const matchesData = snapshot.docs.map(doc => doc.data() as Match & { prediction?: string });
         
         if (matchesData.length > 0) {
+          // Update predictions state from Firestore data
+          const newPredictions: Record<string, string> = {};
+          matchesData.forEach(m => {
+            if (m.prediction) newPredictions[m.id] = m.prediction;
+          });
+          setPredictions(prev => ({ ...prev, ...newPredictions }));
+
           setMatches(prev => {
             // Merge logic: prefer Firestore for scores, but keep local AI commentary if it's newer
             return matchesData.map(newM => {
@@ -297,6 +304,10 @@ export default function App() {
 
         if (response.text) {
           setPredictions(prev => ({ ...prev, [match.id]: response.text }));
+          
+          // Save to Firestore
+          const matchRef = doc(db, "matches", match.id);
+          setDoc(matchRef, { prediction: response.text }, { merge: true });
         }
       } catch (error: any) {
         console.error("Prediction Error:", error);
@@ -309,7 +320,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (selectedMatch && selectedMatch.status === 'live' && !predictions[selectedMatch.id] && (enabledCommentaryMatches.has(selectedMatch.id) || activeTab === "prediction")) {
+    if (selectedMatch && !predictions[selectedMatch.id] && (enabledCommentaryMatches.has(selectedMatch.id) || activeTab === "prediction")) {
       generatePrediction(selectedMatch);
     }
   }, [selectedMatchId, selectedMatch, enabledCommentaryMatches, activeTab]);
@@ -326,7 +337,14 @@ export default function App() {
   }, [enabledCommentaryMatches, selectedMatchId]);
 
   const selectedPrediction = selectedMatch ? predictions[selectedMatch.id] : null;
-  const predictionData = selectedPrediction ? JSON.parse(selectedPrediction) : null;
+  let predictionData = null;
+  if (selectedPrediction) {
+    try {
+      predictionData = JSON.parse(selectedPrediction);
+    } catch (e) {
+      console.error("Failed to parse prediction data:", e);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-surface text-slate-900 font-sans selection:bg-brand selection:text-white relative overflow-x-hidden">
@@ -335,8 +353,8 @@ export default function App() {
 
       {/* Header */}
       <header className="border-b border-line bg-surface/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between gap-8">
+          <div className="flex items-center gap-4 shrink-0">
             <div className="w-10 h-10 bg-brand rounded-lg flex items-center justify-center glow-brand rotate-3">
               <Zap className="text-white w-6 h-6 fill-current -rotate-3" />
             </div>
@@ -344,15 +362,16 @@ export default function App() {
               LiveScore<span className="text-brand">X</span>
             </h1>
           </div>
-          <div className="flex items-center gap-6">
-            <div className="hidden md:flex items-center gap-8 text-xs font-bold uppercase tracking-widest text-slate-400">
+          
+          <div className="flex items-center gap-10 overflow-hidden">
+            <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-slate-400 shrink-0">
               <span className="hover:text-brand transition-colors cursor-pointer">Football</span>
               <span className="hover:text-brand transition-colors cursor-pointer">Basketball</span>
               <span className="hover:text-brand transition-colors cursor-pointer">Tennis</span>
               <span className="hover:text-brand transition-colors cursor-pointer">Formula 1</span>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-6 shrink-0">
               {user ? (
                 <div className="flex items-center gap-3">
                   <div className="flex flex-col items-end">
@@ -707,7 +726,16 @@ export default function App() {
                     ) : (
                       <div className="flex flex-col items-center justify-center h-80 glass rounded-3xl text-slate-200 space-y-6">
                         <Zap className="w-16 h-16 stroke-[1]" />
-                        <p className="text-sm font-bold uppercase tracking-[0.3em]">Analyzing Match Data</p>
+                        <div className="text-center space-y-2">
+                          <p className="text-sm font-bold uppercase tracking-[0.3em] text-slate-400">No Prediction Available</p>
+                          <button 
+                            onClick={() => generatePrediction(selectedMatch)}
+                            disabled={predicting[selectedMatch.id] || isAiThrottled}
+                            className="text-[10px] font-bold text-brand uppercase tracking-widest hover:underline disabled:opacity-50"
+                          >
+                            {predicting[selectedMatch.id] ? "Analyzing..." : "Generate Tactical Forecast"}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </TabsContent>
