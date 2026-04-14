@@ -17,7 +17,8 @@
           "type": "array",
           "items": { "$ref": "MatchEvent" }
         },
-        "prediction": { "type": "string" }
+        "prediction": { "type": "string" },
+        "finishedAt": { "type": "number" }
       },
       "required": ["id", "sport", "homeTeam", "awayTeam", "homeScore", "awayScore", "status", "time"]
     },

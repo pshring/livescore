@@ -24,6 +24,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [selectedSport, setSelectedSport] = useState<Match["sport"] | "all">("all");
   
   const processedEvents = useRef<Set<string>>(new Set());
   const requestQueue = useRef<(() => Promise<void>)[]>([]);
@@ -365,10 +366,36 @@ export default function App() {
           
           <div className="flex items-center gap-10 overflow-hidden">
             <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-slate-400 shrink-0">
-              <span className="hover:text-brand transition-colors cursor-pointer">Football</span>
-              <span className="hover:text-brand transition-colors cursor-pointer">Basketball</span>
-              <span className="hover:text-brand transition-colors cursor-pointer">Tennis</span>
-              <span className="hover:text-brand transition-colors cursor-pointer">Formula 1</span>
+              <span 
+                onClick={() => setSelectedSport("all")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "all" && "text-brand")}
+              >
+                All
+              </span>
+              <span 
+                onClick={() => setSelectedSport("football")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "football" && "text-brand")}
+              >
+                Football
+              </span>
+              <span 
+                onClick={() => setSelectedSport("basketball")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "basketball" && "text-brand")}
+              >
+                Basketball
+              </span>
+              <span 
+                onClick={() => setSelectedSport("tennis")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "tennis" && "text-brand")}
+              >
+                Tennis
+              </span>
+              <span 
+                onClick={() => setSelectedSport("formula1")}
+                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "formula1" && "text-brand")}
+              >
+                Formula 1
+              </span>
             </div>
 
             <div className="flex items-center gap-6 shrink-0">
@@ -432,7 +459,9 @@ export default function App() {
                 <div key={i} className="h-28 glass rounded-2xl animate-pulse" />
               ))
             ) : (
-              matches.map((match) => (
+              matches
+                .filter(m => selectedSport === "all" || m.sport === selectedSport)
+                .map((match) => (
                 <motion.div
                   key={match.id}
                   layoutId={match.id}
@@ -504,35 +533,56 @@ export default function App() {
                   <Card className="glass border-sky-100 rounded-[2rem] overflow-hidden relative inner-glow">
                     <CardContent className="p-6 md:p-12">
                       <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
-                        <div className="text-center space-y-4 md:space-y-6 flex-1">
-                          <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                            <Trophy className="w-8 h-8 md:w-12 md:h-12 text-brand" />
-                          </div>
-                          <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.homeTeam}</h3>
-                        </div>
-
-                        <div className="flex flex-col items-center gap-4 md:gap-6">
-                          <div className="flex items-center gap-4 md:gap-8">
-                            <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
-                            <div className="flex flex-col items-center gap-1">
-                              <div className="w-1 h-1 rounded-full bg-slate-200" />
-                              <div className="w-1 h-1 rounded-full bg-slate-200" />
-                              <div className="w-1 h-1 rounded-full bg-slate-200" />
+                        {selectedMatch.sport !== "formula1" ? (
+                          <>
+                            <div className="text-center space-y-4 md:space-y-6 flex-1">
+                              <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                                <Trophy className="w-8 h-8 md:w-12 md:h-12 text-brand" />
+                              </div>
+                              <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.homeTeam}</h3>
                             </div>
-                            <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.awayScore}</span>
-                          </div>
-                          <div className="flex items-center gap-3 text-brand font-bold tracking-[0.2em] text-[10px] md:text-xs bg-brand/10 px-4 md:px-6 py-1.5 md:py-2 rounded-full border border-brand/20 uppercase">
-                            <Clock className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
-                            {selectedMatch.time}
-                          </div>
-                        </div>
 
-                        <div className="text-center space-y-4 md:space-y-6 flex-1">
-                          <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm -rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                            <Trophy className="w-8 h-8 md:w-12 md:h-12 text-slate-200" />
+                            <div className="flex flex-col items-center gap-4 md:gap-6">
+                              <div className="flex items-center gap-4 md:gap-8">
+                                <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
+                                <div className="flex flex-col items-center gap-1">
+                                  <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                  <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                  <div className="w-1 h-1 rounded-full bg-slate-200" />
+                                </div>
+                                <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.awayScore}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-brand font-bold tracking-[0.2em] text-[10px] md:text-xs bg-brand/10 px-4 md:px-6 py-1.5 md:py-2 rounded-full border border-brand/20 uppercase">
+                                <Clock className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
+                                {selectedMatch.time}
+                              </div>
+                            </div>
+
+                            <div className="text-center space-y-4 md:space-y-6 flex-1">
+                              <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                                <Trophy className="w-8 h-8 md:w-12 md:h-12 text-slate-200" />
+                              </div>
+                              <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.awayTeam}</h3>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex flex-col items-center w-full gap-8">
+                            <div className="flex items-center gap-12">
+                              <div className="text-center space-y-4">
+                                <div className="w-20 h-20 bg-brand/10 rounded-full mx-auto flex items-center justify-center border border-brand/20">
+                                  <Zap className="w-10 h-10 text-brand" />
+                                </div>
+                                <h3 className="text-2xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.homeTeam}</h3>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Leader</span>
+                              </div>
+                              <div className="text-8xl font-black tracking-tighter text-brand font-display">P1</div>
+                            </div>
+                            <div className="flex items-center gap-4 text-brand font-bold tracking-[0.2em] text-xs bg-brand/10 px-8 py-3 rounded-full border border-brand/20 uppercase">
+                              <Activity className="w-4 h-4 animate-pulse" />
+                              {selectedMatch.time}
+                            </div>
                           </div>
-                          <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.awayTeam}</h3>
-                        </div>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

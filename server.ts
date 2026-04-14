@@ -55,7 +55,7 @@ const __dirname = path.dirname(__filename);
 
 interface Match {
   id: string;
-  sport: "football" | "basketball";
+  sport: "football" | "basketball" | "tennis" | "formula1";
   homeTeam: string;
   awayTeam: string;
   homeScore: number;
@@ -64,6 +64,7 @@ interface Match {
   time: string;
   events: MatchEvent[];
   prediction?: string;
+  finishedAt?: number;
 }
 
 interface MatchEvent {
@@ -103,6 +104,32 @@ let matches: Match[] = [
   },
   {
     id: "3",
+    sport: "tennis",
+    homeTeam: "Carlos Alcaraz",
+    awayTeam: "Novak Djokovic",
+    homeScore: 6,
+    awayScore: 4,
+    status: "live",
+    time: "Set 2",
+    events: [
+      { id: "e3", time: "Set 1", type: "Set Point", description: "Alcaraz wins the first set 6-4" }
+    ]
+  },
+  {
+    id: "4",
+    sport: "formula1",
+    homeTeam: "Max Verstappen",
+    awayTeam: "Lewis Hamilton",
+    homeScore: 42,
+    awayScore: 56,
+    status: "live",
+    time: "Lap 42/56",
+    events: [
+      { id: "e4", time: "Lap 38", type: "Fastest Lap", description: "Verstappen sets a new purple sector" }
+    ]
+  },
+  {
+    id: "5",
     sport: "football",
     homeTeam: "Madrid Kings",
     awayTeam: "Paris Saints",
@@ -206,12 +233,27 @@ async function startServer() {
           eventType = "Yellow Card";
           desc = `Yellow card for ${isHome ? matchToUpdate.homeTeam : matchToUpdate.awayTeam} player.`;
         }
-      } else {
+      } else if (matchToUpdate.sport === "basketball") {
         const points = Math.random() > 0.5 ? 2 : 3;
         eventType = `${points}-Pointer`;
         if (isHome) matchToUpdate.homeScore += points;
         else matchToUpdate.awayScore += points;
         desc = `${points} points for ${isHome ? matchToUpdate.homeTeam : matchToUpdate.awayTeam}!`;
+      } else if (matchToUpdate.sport === "tennis") {
+        eventType = "Game Point";
+        if (isHome) matchToUpdate.homeScore++;
+        else matchToUpdate.awayScore++;
+        desc = `Game for ${isHome ? matchToUpdate.homeTeam : matchToUpdate.awayTeam}. Current set: ${matchToUpdate.homeScore}-${matchToUpdate.awayScore}`;
+      } else if (matchToUpdate.sport === "formula1") {
+        if (Math.random() > 0.5) {
+          eventType = "Fastest Lap";
+          desc = `${isHome ? matchToUpdate.homeTeam : matchToUpdate.awayTeam} sets a new personal best lap time.`;
+        } else {
+          eventType = "Overtake";
+          desc = `${isHome ? matchToUpdate.homeTeam : matchToUpdate.awayTeam} moves up in the standings.`;
+        }
+        matchToUpdate.homeScore = Math.min(matchToUpdate.homeScore + 1, matchToUpdate.awayScore);
+        matchToUpdate.time = `Lap ${matchToUpdate.homeScore}/${matchToUpdate.awayScore}`;
       }
 
       const newEvent: MatchEvent = {
@@ -244,7 +286,58 @@ async function startServer() {
     liveMatches.forEach(match => {
       io.emit("matchUpdate", match);
     });
+
+    // Randomly finish a match (low chance per tick)
+    if (Math.random() > 0.98) {
+      const matchToFinish = liveMatches[Math.floor(Math.random() * liveMatches.length)];
+      matchToFinish.status = "finished";
+      matchToFinish.finishedAt = Date.now();
+      
+      const finishEvent: MatchEvent = {
+        id: "finish-" + matchToFinish.id,
+        time: matchToFinish.time,
+        type: "Match Finished",
+        description: `The match has ended. Final score: ${matchToFinish.homeScore} - ${matchToFinish.awayScore}`,
+        aiCommentary: "The referee blows the final whistle! What a game we've witnessed today."
+      };
+      matchToFinish.events.unshift(finishEvent);
+      io.emit("matchUpdate", matchToFinish);
+      
+      if (db) {
+        db.collection("matches").doc(matchToFinish.id).set(matchToFinish, { merge: true });
+      }
+    }
   }, 5000); // Update every 5 seconds for a more "live" feel
+
+  // Cleanup Loop: Remove finished matches after 1 day
+  setInterval(async () => {
+    const now = Date.now();
+    const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+    
+    const matchesToRemove = matches.filter(m => 
+      m.status === "finished" && m.finishedAt && (now - m.finishedAt > ONE_DAY_MS)
+    );
+
+    if (matchesToRemove.length > 0) {
+      console.log(`Cleaning up ${matchesToRemove.length} old matches...`);
+      
+      // Remove from local array
+      matches = matches.filter(m => !matchesToRemove.find(tr => tr.id === m.id));
+
+      // Remove from Firestore
+      if (db) {
+        try {
+          const batch = db.batch();
+          matchesToRemove.forEach(m => {
+            batch.delete(db!.collection("matches").doc(m.id));
+          });
+          await batch.commit();
+        } catch (error) {
+          console.error("Cleanup Firestore Error:", error);
+        }
+      }
+    }
+  }, 3600000); // Check every hour
 
   // Flavor Commentary Loop (Every 5 minutes)
   setInterval(async () => {

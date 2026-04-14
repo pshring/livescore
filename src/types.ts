@@ -1,6 +1,6 @@
 export interface Match {
   id: string;
-  sport: "football" | "basketball";
+  sport: "football" | "basketball" | "tennis" | "formula1";
   homeTeam: string;
   awayTeam: string;
   homeScore: number;
@@ -9,6 +9,7 @@ export interface Match {
   time: string;
   events: MatchEvent[];
   prediction?: string;
+  finishedAt?: number;
 }
 
 export interface MatchEvent {
