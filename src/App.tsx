@@ -415,10 +415,10 @@ export default function App() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-12 grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
         {/* Sidebar: Match List */}
         <div className="lg:col-span-4 space-y-8">
-          <div className="flex items-center justify-between px-2">
+          <div className="flex items-center justify-between px-1 md:px-2">
             <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Match Center</h2>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-brand animate-ping" />
@@ -502,36 +502,36 @@ export default function App() {
                 <div className="relative group">
                   <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 via-transparent to-brand/20 rounded-[2rem] blur-2xl opacity-30 group-hover:opacity-50 transition duration-1000" />
                   <Card className="glass border-sky-100 rounded-[2rem] overflow-hidden relative inner-glow">
-                    <CardContent className="p-12">
-                      <div className="flex flex-col md:flex-row items-center justify-between gap-12">
-                        <div className="text-center space-y-6 flex-1">
-                          <div className="w-24 h-24 bg-sky-50 rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                            <Trophy className="w-12 h-12 text-brand" />
+                    <CardContent className="p-6 md:p-12">
+                      <div className="flex flex-col md:flex-row items-center justify-between gap-8 md:gap-12">
+                        <div className="text-center space-y-4 md:space-y-6 flex-1">
+                          <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                            <Trophy className="w-8 h-8 md:w-12 md:h-12 text-brand" />
                           </div>
-                          <h3 className="text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.homeTeam}</h3>
+                          <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.homeTeam}</h3>
                         </div>
 
-                        <div className="flex flex-col items-center gap-6">
-                          <div className="flex items-center gap-8">
-                            <span className="text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
+                        <div className="flex flex-col items-center gap-4 md:gap-6">
+                          <div className="flex items-center gap-4 md:gap-8">
+                            <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
                             <div className="flex flex-col items-center gap-1">
                               <div className="w-1 h-1 rounded-full bg-slate-200" />
                               <div className="w-1 h-1 rounded-full bg-slate-200" />
                               <div className="w-1 h-1 rounded-full bg-slate-200" />
                             </div>
-                            <span className="text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.awayScore}</span>
+                            <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.awayScore}</span>
                           </div>
-                          <div className="flex items-center gap-3 text-brand font-bold tracking-[0.2em] text-xs bg-brand/10 px-6 py-2 rounded-full border border-brand/20 uppercase">
-                            <Clock className="w-4 h-4 animate-pulse" />
+                          <div className="flex items-center gap-3 text-brand font-bold tracking-[0.2em] text-[10px] md:text-xs bg-brand/10 px-4 md:px-6 py-1.5 md:py-2 rounded-full border border-brand/20 uppercase">
+                            <Clock className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
                             {selectedMatch.time}
                           </div>
                         </div>
 
-                        <div className="text-center space-y-6 flex-1">
-                          <div className="w-24 h-24 bg-sky-50 rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm -rotate-3 group-hover:rotate-0 transition-transform duration-500">
-                            <Trophy className="w-12 h-12 text-slate-200" />
+                        <div className="text-center space-y-4 md:space-y-6 flex-1">
+                          <div className="w-16 h-16 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center border border-sky-100 shadow-sm -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                            <Trophy className="w-8 h-8 md:w-12 md:h-12 text-slate-200" />
                           </div>
-                          <h3 className="text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.awayTeam}</h3>
+                          <h3 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.awayTeam}</h3>
                         </div>
                       </div>
                     </CardContent>
@@ -569,7 +569,7 @@ export default function App() {
                     </div>
                     
                     <TabsContent value="commentary" className="mt-0 outline-none">
-                    <ScrollArea className="h-[500px] pr-6">
+                    <ScrollArea className="h-[400px] md:h-[500px] pr-4 md:pr-6">
                       <div className="space-y-8">
                         {selectedMatch.events.length > 0 ? (
                           selectedMatch.events.map((event, i) => (
@@ -586,12 +586,12 @@ export default function App() {
                                   <span className="text-[10px] font-bold tracking-widest text-brand bg-brand/10 px-3 py-1 rounded-full uppercase">{event.time}</span>
                                   <span className="text-xs font-black uppercase tracking-widest text-slate-400">{event.type}</span>
                                 </div>
-                                <p className="text-lg font-medium text-slate-900 leading-snug tracking-tight">{event.description}</p>
+                                <p className="text-base md:text-lg font-medium text-slate-900 leading-snug tracking-tight">{event.description}</p>
                                 {event.aiCommentary && (
                                   <motion.div 
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
-                                    className="glass p-6 rounded-2xl italic text-slate-500 text-sm flex gap-4 leading-relaxed relative overflow-hidden group/commentary"
+                                    className="glass p-4 md:p-6 rounded-2xl italic text-slate-500 text-sm flex gap-4 leading-relaxed relative overflow-hidden group/commentary"
                                   >
                                     <div className="absolute top-0 left-0 w-1 h-full bg-brand/40" />
                                     <Zap className="w-5 h-5 text-brand shrink-0 mt-0.5" />
@@ -675,13 +675,13 @@ export default function App() {
                             <CardHeader className="pb-0">
                               <CardTitle className="text-[10px] font-bold uppercase tracking-[0.3em] text-brand">AI Tactical Forecast</CardTitle>
                             </CardHeader>
-                            <CardContent className="flex flex-col items-center py-12 px-10">
-                              <div className="text-center space-y-2 mb-8">
+                            <CardContent className="flex flex-col items-center py-8 md:py-12 px-6 md:px-10">
+                              <div className="text-center space-y-2 mb-6 md:mb-8">
                                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Predicted Final Score</span>
-                                <div className="text-7xl font-black tracking-tighter text-brand font-display">{predictionData.predictedScore}</div>
+                                <div className="text-5xl md:text-7xl font-black tracking-tighter text-brand font-display">{predictionData.predictedScore}</div>
                               </div>
-                              <div className="h-px w-20 bg-slate-100 mb-8" />
-                              <p className="text-center text-xl font-medium text-slate-700 italic leading-relaxed max-w-2xl">
+                              <div className="h-px w-16 md:w-20 bg-slate-100 mb-6 md:mb-8" />
+                              <p className="text-center text-lg md:text-xl font-medium text-slate-700 italic leading-relaxed max-w-2xl">
                                 "{predictionData.reason}"
                               </p>
                             </CardContent>
@@ -693,8 +693,8 @@ export default function App() {
                             <CardHeader className="pb-2">
                               <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{selectedMatch.homeTeam} Win Probability</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                              <span className="text-5xl font-black font-display text-brand">{predictionData.homeWinProb}</span>
+                            <CardContent className="space-y-4 md:space-y-6">
+                              <span className="text-4xl md:text-5xl font-black font-display text-brand">{predictionData.homeWinProb}</span>
                               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <motion.div 
                                   initial={{ width: 0 }}
@@ -709,8 +709,8 @@ export default function App() {
                             <CardHeader className="pb-2">
                               <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{selectedMatch.awayTeam} Win Probability</CardTitle>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                              <span className="text-5xl font-black font-display text-slate-400">{predictionData.awayWinProb}</span>
+                            <CardContent className="space-y-4 md:space-y-6">
+                              <span className="text-4xl md:text-5xl font-black font-display text-slate-400">{predictionData.awayWinProb}</span>
                               <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                                 <motion.div 
                                   initial={{ width: 0 }}
