@@ -42,6 +42,7 @@ if (!admin.apps.length) {
         databaseURL: `https://${firebaseConfig.projectId}.firebaseio.com`
       });
       db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+      db.settings({ ignoreUndefinedProperties: true });
       console.log(`Firebase Admin initialized successfully for database: ${firebaseConfig.firestoreDatabaseId}`);
     } catch (error) {
       console.error("Firebase Admin initialization failed:", error);
@@ -61,6 +62,8 @@ interface Match {
   awayTeam: string;
   homeScore: number;
   awayScore: number;
+  homeScoreDetail?: string;
+  awayScoreDetail?: string;
   status: "live" | "scheduled" | "finished";
   time: string;
   events: MatchEvent[];
@@ -214,9 +217,28 @@ async function fetchOpenLigaMatches() {
   }
 }
 
+// Global cache for sports data to avoid rate limits (429)
+const sportsCache: Record<string, { data: Match[], timestamp: number }> = {};
+const CACHE_TTL = 120000; // 2 minutes cache
+const COOLDOWN_PERIOD = 300000; // 5 minutes cooldown on 429
+const apiCooldowns: Record<string, number> = {};
+
 async function fetchBaseballMatches() {
   const KEY = "af98a0eabbmshbaf584a02f620b5p1df683jsnd0ebaa907c01";
   const HOST = "sportapi7.p.rapidapi.com";
+  const cacheKey = "baseball";
+  const now = Date.now();
+
+  // Check cooldown
+  if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) {
+    console.log("Baseball API is in cooldown...");
+    return sportsCache[cacheKey]?.data || [];
+  }
+
+  // Check cache
+  if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) {
+    return sportsCache[cacheKey].data;
+  }
 
   try {
     const response = await axios.get("https://sportapi7.p.rapidapi.com/api/v1/sport/baseball/events/live", {
@@ -227,7 +249,7 @@ async function fetchBaseballMatches() {
     const events = response.data.events;
     if (!Array.isArray(events)) return [];
 
-    return events.map((e: any) => ({
+    const matches = events.map((e: any) => ({
       id: `real-sa-bb-${e.id}`,
       sport: "baseball",
       homeTeam: e.homeTeam.name,
@@ -238,15 +260,37 @@ async function fetchBaseballMatches() {
       time: e.status.description || "Live",
       events: []
     })) as Match[];
-  } catch (error) {
-    console.error("Baseball API Error:", error instanceof Error ? error.message : "Unknown error");
-    return [];
+
+    // Update cache
+    sportsCache[cacheKey] = { data: matches, timestamp: now };
+    return matches;
+  } catch (error: any) {
+    if (error.response?.status === 429) {
+      console.warn("Baseball API: 429 Rate Limit hit. Entering cooldown.");
+      apiCooldowns[cacheKey] = now + COOLDOWN_PERIOD;
+    } else {
+      console.error("Baseball API Error:", error instanceof Error ? error.message : "Unknown error");
+    }
+    return sportsCache[cacheKey]?.data || [];
   }
 }
 
 async function fetchCricketMatches() {
   const KEY = "af98a0eabbmshbaf584a02f620b5p1df683jsnd0ebaa907c01";
   const HOST = "cricbuzz-cricket.p.rapidapi.com";
+  const cacheKey = "cricket";
+  const now = Date.now();
+
+  // Check cooldown
+  if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) {
+    console.log("Cricket API is in cooldown...");
+    return sportsCache[cacheKey]?.data || [];
+  }
+
+  // Check cache
+  if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) {
+    return sportsCache[cacheKey].data;
+  }
 
   try {
     // Cricbuzz live matches list endpoint
@@ -272,9 +316,10 @@ async function fetchCricketMatches() {
                   sport: "cricket",
                   homeTeam: matchInfo.team1.teamName,
                   awayTeam: matchInfo.team2.teamName,
-                  // Cricket scores are complex (runs/wickets), we'll simplify for the UI score slots
                   homeScore: matchScore.team1Score?.inngs1?.runs ?? 0,
                   awayScore: matchScore.team2Score?.inngs1?.runs ?? 0,
+                  homeScoreDetail: matchScore.team1Score?.inngs1 ? `${matchScore.team1Score.inngs1.runs}/${matchScore.team1Score.inngs1.wickets || 0} (${matchScore.team1Score.inngs1.overs || 0})` : undefined,
+                  awayScoreDetail: matchScore.team2Score?.inngs1 ? `${matchScore.team2Score.inngs1.runs}/${matchScore.team2Score.inngs1.wickets || 0} (${matchScore.team2Score.inngs1.overs || 0})` : undefined,
                   status: "live",
                   time: matchInfo.status || "Live",
                   events: []
@@ -286,10 +331,17 @@ async function fetchCricketMatches() {
       }
     });
 
+    // Update cache
+    sportsCache[cacheKey] = { data: cricketMatches, timestamp: now };
     return cricketMatches;
-  } catch (error) {
-    console.error("Cricket API Error:", error instanceof Error ? error.message : "Unknown error");
-    return [];
+  } catch (error: any) {
+    if (error.response?.status === 429) {
+      console.warn("Cricket API: 429 Rate Limit hit. Entering cooldown.");
+      apiCooldowns[cacheKey] = now + COOLDOWN_PERIOD;
+    } else {
+      console.error("Cricket API Error:", error instanceof Error ? error.message : "Unknown error");
+    }
+    return sportsCache[cacheKey]?.data || [];
   }
 }
 

@@ -99,6 +99,24 @@ export default function App() {
   const [isAiThrottled, setIsAiThrottled] = useState(false);
   const throttleTimer = useRef<NodeJS.Timeout | null>(null);
 
+  // Auto-select first match when sport changes or when matches update and current selection is invalid
+  useEffect(() => {
+    if (selectedSport !== "all" && matches.length > 0) {
+      const currentMatch = matches.find(m => m.id === selectedMatchId);
+      
+      // If no match selected, or selected match doesn't match the current sport filter
+      if (!currentMatch || currentMatch.sport !== selectedSport) {
+        const liveForSport = matches.filter(m => m.sport === selectedSport && m.status === 'live');
+        if (liveForSport.length > 0) {
+          setSelectedMatchId(liveForSport[0].id);
+        } else {
+          const anyForSport = matches.filter(m => m.sport === selectedSport);
+          if (anyForSport.length > 0) setSelectedMatchId(anyForSport[0].id);
+        }
+      }
+    }
+  }, [selectedSport, matches, selectedMatchId]);
+
   const isRateLimitError = (error: any) => {
     const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
     return errorStr.includes("429") || errorStr.includes("RESOURCE_EXHAUSTED") || errorStr.includes("quota");
@@ -756,111 +774,170 @@ export default function App() {
               ))
             ) : (
               <>
-                {/* Cricket Section (Real-World) */}
-                {(selectedSport === "all" || selectedSport === "cricket") && matches.filter(m => m.sport === 'cricket' && m.status === 'live').length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2 px-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                      Live Cricket
-                    </h3>
-                    <div className="space-y-4">
-                      {matches
-                        .filter(m => m.sport === 'cricket' && m.status === 'live')
-                        .map((match) => (
-                          <motion.div
-                            key={match.id}
-                            layoutId={match.id}
-                            onClick={() => setSelectedMatchId(match.id)}
-                            className={cn(
-                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
-                              selectedMatchId === match.id
-                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
-                                : "glass-hover"
-                            )}
-                          >
-                            <div className="flex justify-between items-center mb-4 relative z-10">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                  Cricbuzz • Live
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">{match.time}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3 relative z-10">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold tracking-tight text-slate-900">{match.homeTeam}</span>
-                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold tracking-tight text-slate-900">{match.awayTeam}</span>
-                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                    </div>
-                  </div>
-                )}
+                {/* Categorized Sections (Only when "All" is selected) */}
+                {selectedSport === "all" && (
+                  <>
+                    {/* Cricket Section (Real-World) */}
+                    {matches.filter(m => m.sport === 'cricket' && m.status === 'live').length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2 px-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
+                          Live Cricket
+                        </h3>
+                        <div className="space-y-4">
+                          {matches
+                            .filter(m => m.sport === 'cricket' && m.status === 'live')
+                            .map((match) => (
+                              <motion.div
+                                key={match.id}
+                                layoutId={match.id}
+                                onClick={() => setSelectedMatchId(match.id)}
+                                className={cn(
+                                  "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                                  selectedMatchId === match.id
+                                    ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                    : "glass-hover"
+                                )}
+                              >
+                                {selectedMatchId === match.id && (
+                                  <motion.div 
+                                    layoutId="active-glow"
+                                    className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
+                                  />
+                                )}
+                                
+                                <div className="flex justify-between items-center mb-4 relative z-10">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                      Cricbuzz • Live
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(match.id);
+                                      }}
+                                      className={cn(
+                                        "p-1.5 rounded-full transition-all duration-300",
+                                        userProfile?.favorites?.includes(match.id)
+                                          ? "text-red-500 bg-red-50"
+                                          : "text-slate-300 hover:text-red-400 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      <Heart className={cn("w-3.5 h-3.5", userProfile?.favorites?.includes(match.id) && "fill-current")} />
+                                    </button>
+                                    <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-3 relative z-10">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                      <span className="font-bold tracking-tight text-slate-900">{match.homeTeam}</span>
+                                      {match.homeScoreDetail && <span className="text-[9px] text-slate-400 font-medium">{match.homeScoreDetail}</span>}
+                                    </div>
+                                    <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                      <span className="font-bold tracking-tight text-slate-900">{match.awayTeam}</span>
+                                      {match.awayScoreDetail && <span className="text-[9px] text-slate-400 font-medium">{match.awayScoreDetail}</span>}
+                                    </div>
+                                    <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
 
-                {/* Baseball Section (Real-World) */}
-                {(selectedSport === "all" || selectedSport === "baseball") && matches.filter(m => m.sport === 'baseball' && m.status === 'live').length > 0 && (
-                  <div className="space-y-4">
-                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2 px-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-                      Live Baseball
-                    </h3>
-                    <div className="space-y-4">
-                      {matches
-                        .filter(m => m.sport === 'baseball' && m.status === 'live')
-                        .map((match) => (
-                          <motion.div
-                            key={match.id}
-                            layoutId={match.id}
-                            onClick={() => setSelectedMatchId(match.id)}
-                            className={cn(
-                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
-                              selectedMatchId === match.id
-                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
-                                : "glass-hover"
-                            )}
-                          >
-                            <div className="flex justify-between items-center mb-4 relative z-10">
-                              <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                  MLB • Live
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{match.time}</span>
-                              </div>
-                            </div>
-                            
-                            <div className="space-y-3 relative z-10">
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold tracking-tight text-slate-900">{match.homeTeam}</span>
-                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
-                              </div>
-                              <div className="flex items-center justify-between">
-                                <span className="font-bold tracking-tight text-slate-900">{match.awayTeam}</span>
-                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                    </div>
-                  </div>
+                    {/* Baseball Section (Real-World) */}
+                    {matches.filter(m => m.sport === 'baseball' && m.status === 'live').length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2 px-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
+                          Live Baseball
+                        </h3>
+                        <div className="space-y-4">
+                          {matches
+                            .filter(m => m.sport === 'baseball' && m.status === 'live')
+                            .map((match) => (
+                              <motion.div
+                                key={match.id}
+                                layoutId={match.id}
+                                onClick={() => setSelectedMatchId(match.id)}
+                                className={cn(
+                                  "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                                  selectedMatchId === match.id
+                                    ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                    : "glass-hover"
+                                )}
+                              >
+                                {selectedMatchId === match.id && (
+                                  <motion.div 
+                                    layoutId="active-glow"
+                                    className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
+                                  />
+                                )}
+                                
+                                <div className="flex justify-between items-center mb-4 relative z-10">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                      MLB • Live
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(match.id);
+                                      }}
+                                      className={cn(
+                                        "p-1.5 rounded-full transition-all duration-300",
+                                        userProfile?.favorites?.includes(match.id)
+                                          ? "text-red-500 bg-red-50"
+                                          : "text-slate-300 hover:text-red-400 hover:bg-slate-50"
+                                      )}
+                                    >
+                                      <Heart className={cn("w-3.5 h-3.5", userProfile?.favorites?.includes(match.id) && "fill-current")} />
+                                    </button>
+                                    <span className="text-[10px] font-mono font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="space-y-3 relative z-10">
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                      <span className="font-bold tracking-tight text-slate-900">{match.homeTeam}</span>
+                                      {match.homeScoreDetail && <span className="text-[9px] text-slate-400 font-medium">{match.homeScoreDetail}</span>}
+                                    </div>
+                                    <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex flex-col">
+                                      <span className="font-bold tracking-tight text-slate-900">{match.awayTeam}</span>
+                                      {match.awayScoreDetail && <span className="text-[9px] text-slate-400 font-medium">{match.awayScoreDetail}</span>}
+                                    </div>
+                                    <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                                  </div>
+                                </div>
+                              </motion.div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* Live Section (Football & Others) */}
                 <div className="space-y-4">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 flex items-center gap-2 px-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    {selectedSport === "all" ? "Other Live Matches" : `Live ${selectedSport}`}
+                    {selectedSport === "all" ? "Other Live Matches" : `Live ${selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1)}`}
                   </h3>
                   <div className="space-y-4">
                     {matches.filter(m => 
@@ -943,7 +1020,7 @@ export default function App() {
                           </motion.div>
                         ))
                     ) : (
-                      <p className="text-[10px] text-slate-300 italic px-2">No live matches in this category</p>
+                      <p className="text-[10px] text-slate-300 italic px-2">No live {selectedSport === 'all' ? 'matches' : selectedSport} right now</p>
                     )}
                   </div>
                 </div>
@@ -1157,17 +1234,25 @@ export default function App() {
 
                             <div className="flex flex-col items-center gap-4 md:gap-6">
                               <div className="flex items-center gap-4 md:gap-8">
-                                <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
+                                  {selectedMatch.homeScoreDetail && <span className="text-[10px] md:text-xs font-bold text-slate-400 mt-1">{selectedMatch.homeScoreDetail}</span>}
+                                </div>
                                 <div className="flex flex-col items-center gap-1">
                                   <div className="w-1 h-1 rounded-full bg-slate-200" />
                                   <div className="w-1 h-1 rounded-full bg-slate-200" />
                                   <div className="w-1 h-1 rounded-full bg-slate-200" />
                                 </div>
-                                <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.awayScore}</span>
+                                <div className="flex flex-col items-center">
+                                  <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.awayScore}</span>
+                                  {selectedMatch.awayScoreDetail && <span className="text-[10px] md:text-xs font-bold text-slate-400 mt-1">{selectedMatch.awayScoreDetail}</span>}
+                                </div>
                               </div>
                               <div className="flex items-center gap-3 text-brand font-bold tracking-[0.2em] text-[10px] md:text-xs bg-brand/10 px-4 md:px-6 py-1.5 md:py-2 rounded-full border border-brand/20 uppercase">
                                 <Clock className="w-3 h-3 md:w-4 md:h-4 animate-pulse" />
                                 {selectedMatch.time}
+                                {selectedMatch.id.startsWith("real-cb-") && " • CRICBUZZ"}
+                                {selectedMatch.id.startsWith("real-bb-") && " • MLB"}
                               </div>
                             </div>
 
