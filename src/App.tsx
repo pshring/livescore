@@ -444,7 +444,7 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
         {/* Sidebar: Match List */}
-        <div className="lg:col-span-4 space-y-8">
+        <div className="lg:col-span-4 space-y-10">
           <div className="flex items-center justify-between px-1 md:px-2">
             <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Match Center</h2>
             <div className="flex items-center gap-2">
@@ -453,64 +453,209 @@ export default function App() {
             </div>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-10">
             {loading ? (
               Array(4).fill(0).map((_, i) => (
                 <div key={i} className="h-28 glass rounded-2xl animate-pulse" />
               ))
             ) : (
-              matches
-                .filter(m => selectedSport === "all" || m.sport === selectedSport)
-                .map((match) => (
-                <motion.div
-                  key={match.id}
-                  layoutId={match.id}
-                  onClick={() => setSelectedMatchId(match.id)}
-                  className={cn(
-                    "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
-                    selectedMatchId === match.id
-                      ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
-                      : "glass-hover"
-                  )}
-                >
-                  {selectedMatchId === match.id && (
-                    <motion.div 
-                      layoutId="active-glow"
-                      className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
-                    />
-                  )}
-                  
-                  <div className="flex justify-between items-center mb-4 relative z-10">
-                    <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "w-2 h-2 rounded-full",
-                        match.status === 'live' ? "bg-red-500 animate-pulse" : "bg-slate-200"
-                      )} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                        {match.sport} • {match.status === 'live' ? "In Play" : match.status}
-                      </span>
-                    </div>
-                    <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+              <>
+                {/* Live Section */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 flex items-center gap-2 px-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                    Live Now
+                  </h3>
+                  <div className="space-y-4">
+                    {matches.filter(m => m.status === 'live' && (selectedSport === "all" || m.sport === selectedSport)).length > 0 ? (
+                      matches
+                        .filter(m => m.status === 'live' && (selectedSport === "all" || m.sport === selectedSport))
+                        .map((match) => (
+                          <motion.div
+                            key={match.id}
+                            layoutId={match.id}
+                            onClick={() => setSelectedMatchId(match.id)}
+                            className={cn(
+                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                              selectedMatchId === match.id
+                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                : "glass-hover"
+                            )}
+                          >
+                            {selectedMatchId === match.id && (
+                              <motion.div 
+                                layoutId="active-glow"
+                                className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
+                              />
+                            )}
+                            
+                            <div className="flex justify-between items-center mb-4 relative z-10">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  match.status === 'live' ? "bg-red-500 animate-pulse" : "bg-slate-200"
+                                )} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                  {match.sport} • {match.status === 'live' ? "In Play" : match.status}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                            </div>
+                            
+                            <div className="space-y-3 relative z-10">
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "font-bold tracking-tight transition-colors",
+                                  selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
+                                )}>{match.homeTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "font-bold tracking-tight transition-colors",
+                                  selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
+                                )}>{match.awayTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))
+                    ) : (
+                      <p className="text-[10px] text-slate-300 italic px-2">No live matches in this category</p>
+                    )}
                   </div>
-                  
-                  <div className="space-y-3 relative z-10">
-                    <div className="flex items-center justify-between">
-                      <span className={cn(
-                        "font-bold tracking-tight transition-colors",
-                        selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
-                      )}>{match.homeTeam}</span>
-                      <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className={cn(
-                        "font-bold tracking-tight transition-colors",
-                        selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
-                      )}>{match.awayTeam}</span>
-                      <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
-                    </div>
+                </div>
+
+                {/* Finished Section */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">
+                    Recently Finished
+                  </h3>
+                  <div className="space-y-4">
+                    {matches.filter(m => m.status === 'finished' && (selectedSport === "all" || m.sport === selectedSport)).length > 0 ? (
+                      matches
+                        .filter(m => m.status === 'finished' && (selectedSport === "all" || m.sport === selectedSport))
+                        .map((match) => (
+                          <motion.div
+                            key={match.id}
+                            layoutId={match.id}
+                            onClick={() => setSelectedMatchId(match.id)}
+                            className={cn(
+                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                              selectedMatchId === match.id
+                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                : "glass-hover"
+                            )}
+                          >
+                            {selectedMatchId === match.id && (
+                              <motion.div 
+                                layoutId="active-glow"
+                                className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
+                              />
+                            )}
+                            
+                            <div className="flex justify-between items-center mb-4 relative z-10">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  match.status === 'live' ? "bg-red-500 animate-pulse" : "bg-slate-200"
+                                )} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                  {match.sport} • {match.status === 'live' ? "In Play" : match.status}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                            </div>
+                            
+                            <div className="space-y-3 relative z-10">
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "font-bold tracking-tight transition-colors",
+                                  selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
+                                )}>{match.homeTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "font-bold tracking-tight transition-colors",
+                                  selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
+                                )}>{match.awayTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))
+                    ) : (
+                      <p className="text-[10px] text-slate-300 italic px-2">No recently finished matches</p>
+                    )}
                   </div>
-                </motion.div>
-              ))
+                </div>
+
+                {/* Upcoming Section */}
+                <div className="space-y-4">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">
+                    Upcoming
+                  </h3>
+                  <div className="space-y-4">
+                    {matches.filter(m => m.status === 'scheduled' && (selectedSport === "all" || m.sport === selectedSport)).length > 0 ? (
+                      matches
+                        .filter(m => m.status === 'scheduled' && (selectedSport === "all" || m.sport === selectedSport))
+                        .map((match) => (
+                          <motion.div
+                            key={match.id}
+                            layoutId={match.id}
+                            onClick={() => setSelectedMatchId(match.id)}
+                            className={cn(
+                              "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                              selectedMatchId === match.id
+                                ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
+                                : "glass-hover"
+                            )}
+                          >
+                            {selectedMatchId === match.id && (
+                              <motion.div 
+                                layoutId="active-glow"
+                                className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
+                              />
+                            )}
+                            
+                            <div className="flex justify-between items-center mb-4 relative z-10">
+                              <div className="flex items-center gap-2">
+                                <div className={cn(
+                                  "w-2 h-2 rounded-full",
+                                  match.status === 'live' ? "bg-red-500 animate-pulse" : "bg-slate-200"
+                                )} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                                  {match.sport} • {match.status === 'live' ? "In Play" : match.status}
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-mono font-bold text-brand bg-brand/10 px-2 py-0.5 rounded uppercase">{match.time}</span>
+                            </div>
+                            
+                            <div className="space-y-3 relative z-10">
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "font-bold tracking-tight transition-colors",
+                                  selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
+                                )}>{match.homeTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.homeScore}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className={cn(
+                                  "font-bold tracking-tight transition-colors",
+                                  selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
+                                )}>{match.awayTeam}</span>
+                                <span className="font-display font-bold text-xl tabular-nums text-slate-900">{match.awayScore}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))
+                    ) : (
+                      <p className="text-[10px] text-slate-300 italic px-2">No upcoming matches</p>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
         </div>

@@ -138,6 +138,34 @@ let matches: Match[] = [
     status: "scheduled",
     time: "20:45",
     events: []
+  },
+  {
+    id: "6",
+    sport: "tennis",
+    homeTeam: "Rafael Nadal",
+    awayTeam: "Roger Federer",
+    homeScore: 6,
+    awayScore: 7,
+    status: "finished",
+    time: "Final",
+    finishedAt: Date.now() - 3600000, // 1 hour ago
+    events: [
+      { id: "e6", time: "Final", type: "Match Finished", description: "Federer wins a classic tiebreak" }
+    ]
+  },
+  {
+    id: "7",
+    sport: "football",
+    homeTeam: "Berlin Bears",
+    awayTeam: "Munich Eagles",
+    homeScore: 2,
+    awayScore: 1,
+    status: "finished",
+    time: "FT",
+    finishedAt: Date.now() - 7200000, // 2 hours ago
+    events: [
+      { id: "e7", time: "90'", type: "Match Finished", description: "The Bears hold on for a narrow victory" }
+    ]
   }
 ];
 
@@ -176,17 +204,14 @@ async function startServer() {
   if (db) {
     try {
       const matchesCol = db.collection("matches");
-      const snapshot = await matchesCol.limit(1).get();
-      if (snapshot.empty) {
-        console.log("Seeding initial matches to Firestore...");
-        const batch = db.batch();
-        matches.forEach(match => {
-          batch.set(matchesCol.doc(match.id), match);
-        });
-        await batch.commit();
-      }
+      console.log("Syncing initial matches to Firestore...");
+      const batch = db.batch();
+      matches.forEach(match => {
+        batch.set(matchesCol.doc(match.id), match, { merge: true });
+      });
+      await batch.commit();
     } catch (error) {
-      console.error("Initial seeding failed:", error);
+      console.error("Initial sync failed:", error);
     }
   }
 
