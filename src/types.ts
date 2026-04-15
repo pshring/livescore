@@ -7,6 +7,7 @@ export interface Match {
   awayScore: number;
   homeScoreDetail?: string;
   awayScoreDetail?: string;
+  league?: string;
   status: "live" | "scheduled" | "finished";
   time: string;
   events: MatchEvent[];

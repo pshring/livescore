@@ -64,6 +64,7 @@ interface Match {
   awayScore: number;
   homeScoreDetail?: string;
   awayScoreDetail?: string;
+  league?: string;
   status: "live" | "scheduled" | "finished";
   time: string;
   events: MatchEvent[];
@@ -87,6 +88,7 @@ let matches: Match[] = [
     awayTeam: "Manchester Hawks",
     homeScore: 1,
     awayScore: 0,
+    league: "Premier League",
     status: "live",
     time: "65'",
     events: [
@@ -100,6 +102,7 @@ let matches: Match[] = [
     awayTeam: "NY Giants",
     homeScore: 88,
     awayScore: 92,
+    league: "NBA",
     status: "live",
     time: "Q4 4:20",
     events: [
@@ -113,6 +116,7 @@ let matches: Match[] = [
     awayTeam: "Novak Djokovic",
     homeScore: 6,
     awayScore: 4,
+    league: "Wimbledon",
     status: "live",
     time: "Set 2",
     events: [
@@ -126,6 +130,7 @@ let matches: Match[] = [
     awayTeam: "Lewis Hamilton",
     homeScore: 42,
     awayScore: 56,
+    league: "Monaco Grand Prix",
     status: "live",
     time: "Lap 42/56",
     events: [
@@ -139,6 +144,7 @@ let matches: Match[] = [
     awayTeam: "Paris Saints",
     homeScore: 0,
     awayScore: 0,
+    league: "Champions League",
     status: "scheduled",
     time: "20:45",
     events: []
@@ -150,6 +156,7 @@ let matches: Match[] = [
     awayTeam: "Roger Federer",
     homeScore: 6,
     awayScore: 7,
+    league: "US Open",
     status: "finished",
     time: "Final",
     finishedAt: Date.now() - 3600000, // 1 hour ago
@@ -164,6 +171,7 @@ let matches: Match[] = [
     awayTeam: "Munich Eagles",
     homeScore: 2,
     awayScore: 1,
+    league: "Bundesliga",
     status: "finished",
     time: "FT",
     finishedAt: Date.now() - 7200000, // 2 hours ago
@@ -256,6 +264,7 @@ async function fetchBaseballMatches() {
       awayTeam: e.awayTeam.name,
       homeScore: e.homeScore.current ?? 0,
       awayScore: e.awayScore.current ?? 0,
+      league: e.tournament?.name || "Baseball League",
       status: "live",
       time: e.status.description || "Live",
       events: []
@@ -320,6 +329,7 @@ async function fetchCricketMatches() {
                   awayScore: matchScore.team2Score?.inngs1?.runs ?? 0,
                   homeScoreDetail: matchScore.team1Score?.inngs1 ? `${matchScore.team1Score.inngs1.runs}/${matchScore.team1Score.inngs1.wickets || 0} (${matchScore.team1Score.inngs1.overs || 0})` : undefined,
                   awayScoreDetail: matchScore.team2Score?.inngs1 ? `${matchScore.team2Score.inngs1.runs}/${matchScore.team2Score.inngs1.wickets || 0} (${matchScore.team2Score.inngs1.overs || 0})` : undefined,
+                  league: series.seriesAdWrapper?.seriesName || "Cricket Series",
                   status: "live",
                   time: matchInfo.status || "Live",
                   events: []

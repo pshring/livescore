@@ -22,6 +22,23 @@ import { collection, onSnapshot, query, doc, setDoc, getDocFromServer, orderBy, 
 const socket: Socket = io();
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
+const FOOTBALL_TOURNAMENTS = [
+  "Premier League",
+  "La Liga",
+  "Bundesliga",
+  "Serie A",
+  "Ligue 1",
+  "Champions League",
+  "Europa League",
+  "World Cup",
+  "Euro",
+  "Copa America",
+  "FA Cup",
+  "Carabao Cup",
+  "MLS",
+  "Saudi Pro League"
+];
+
 enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',
@@ -80,6 +97,7 @@ export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [selectedSport, setSelectedSport] = useState<Match["sport"] | "all">("all");
+  const [selectedLeague, setSelectedLeague] = useState<string>("all");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -99,23 +117,38 @@ export default function App() {
   const [isAiThrottled, setIsAiThrottled] = useState(false);
   const throttleTimer = useRef<NodeJS.Timeout | null>(null);
 
-  // Auto-select first match when sport changes or when matches update and current selection is invalid
+  // Auto-select first match when sport/league changes or when matches update and current selection is invalid
   useEffect(() => {
-    if (selectedSport !== "all" && matches.length > 0) {
+    if (matches.length > 0) {
       const currentMatch = matches.find(m => m.id === selectedMatchId);
       
-      // If no match selected, or selected match doesn't match the current sport filter
-      if (!currentMatch || currentMatch.sport !== selectedSport) {
-        const liveForSport = matches.filter(m => m.sport === selectedSport && m.status === 'live');
-        if (liveForSport.length > 0) {
-          setSelectedMatchId(liveForSport[0].id);
-        } else {
-          const anyForSport = matches.filter(m => m.sport === selectedSport);
-          if (anyForSport.length > 0) setSelectedMatchId(anyForSport[0].id);
+      const isSportMatch = selectedSport === "all" || (currentMatch && currentMatch.sport === selectedSport);
+      const isLeagueMatch = selectedLeague === "all" || (currentMatch && currentMatch.league === selectedLeague);
+
+      if (!currentMatch || !isSportMatch || !isLeagueMatch) {
+        const filtered = matches.filter(m => 
+          (selectedSport === "all" || m.sport === selectedSport) && 
+          (selectedLeague === "all" || m.league === selectedLeague)
+        );
+        
+        if (filtered.length > 0) {
+          const live = filtered.find(m => m.status === 'live');
+          setSelectedMatchId(live ? live.id : filtered[0].id);
         }
       }
     }
-  }, [selectedSport, matches, selectedMatchId]);
+  }, [selectedSport, selectedLeague, matches, selectedMatchId]);
+
+  const filterMatches = (matchList: Match[], status?: Match["status"], excludeSports: string[] = []) => {
+    return matchList.filter(m => {
+      const sportMatch = selectedSport === "all" 
+        ? !excludeSports.includes(m.sport)
+        : m.sport === selectedSport;
+      const leagueMatch = selectedLeague === "all" || m.league === selectedLeague;
+      const statusMatch = !status || m.status === status;
+      return sportMatch && leagueMatch && statusMatch;
+    });
+  };
 
   const isRateLimitError = (error: any) => {
     const errorStr = typeof error === 'string' ? error : JSON.stringify(error);
@@ -207,6 +240,10 @@ export default function App() {
       }
     });
   };
+
+  useEffect(() => {
+    setSelectedLeague("all");
+  }, [selectedSport]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -603,6 +640,59 @@ export default function App() {
     }
   }
 
+  const tournamentsBySport: Record<string, { id: string, name: string }[]> = {
+    football: [
+      { id: "all", name: "All Tournaments" },
+      { id: "Premier League", name: "Premier League" },
+      { id: "La Liga", name: "La Liga" },
+      { id: "Bundesliga", name: "Bundesliga" },
+      { id: "Serie A", name: "Serie A" },
+      { id: "Ligue 1", name: "Ligue 1" },
+      { id: "Champions League", name: "Champions League" },
+      { id: "Europa League", name: "Europa League" },
+      { id: "World Cup", name: "World Cup" },
+      { id: "Euro", name: "Euro" },
+      { id: "Copa America", name: "Copa America" },
+      { id: "FA Cup", name: "FA Cup" },
+      { id: "Carabao Cup", name: "Carabao Cup" },
+      { id: "MLS", name: "MLS" },
+      { id: "Saudi Pro League", name: "Saudi Pro League" },
+      { id: "Eredivisie", name: "Eredivisie" },
+      { id: "Primeira Liga", name: "Primeira Liga" },
+      { id: "Brasileirão", name: "Brasileirão" },
+      { id: "Copa Libertadores", name: "Copa Libertadores" },
+      { id: "AFC Champions League", name: "AFC Champions League" },
+      { id: "Club World Cup", name: "Club World Cup" },
+      { id: "Nations League", name: "Nations League" },
+    ],
+    basketball: [
+      { id: "all", name: "All Leagues" },
+      { id: "NBA", name: "NBA" },
+      { id: "EuroLeague", name: "EuroLeague" },
+      { id: "NCAA", name: "NCAA" },
+    ],
+    baseball: [
+      { id: "all", name: "All Leagues" },
+      { id: "MLB", name: "MLB" },
+      { id: "NPB", name: "NPB" },
+    ],
+    cricket: [
+      { id: "all", name: "All Tournaments" },
+      { id: "IPL", name: "IPL" },
+      { id: "ICC World Cup", name: "ICC World Cup" },
+      { id: "T20 World Cup", name: "T20 World Cup" },
+      { id: "The Ashes", name: "The Ashes" },
+    ],
+    tennis: [
+      { id: "all", name: "All Tournaments" },
+      { id: "Wimbledon", name: "Wimbledon" },
+      { id: "US Open", name: "US Open" },
+      { id: "French Open", name: "French Open" },
+      { id: "Australian Open", name: "Australian Open" },
+      { id: "ATP Finals", name: "ATP Finals" },
+    ],
+  };
+
   return (
     <div className="min-h-screen bg-surface text-slate-900 font-sans selection:bg-brand selection:text-white relative overflow-x-hidden">
       {/* Notifications Overlay */}
@@ -646,43 +736,129 @@ export default function App() {
           <div className="flex items-center gap-10 overflow-hidden">
             <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-slate-400 shrink-0">
               <span 
-                onClick={() => setSelectedSport("all")}
+                onClick={() => {
+                  setSelectedSport("all");
+                  setSelectedLeague("all");
+                }}
                 className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "all" && "text-brand")}
               >
                 All
               </span>
+              <div className="flex items-center gap-2">
+                <span 
+                  onClick={() => {
+                    setSelectedSport("football");
+                    setSelectedLeague("all");
+                  }}
+                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "football" && "text-brand")}
+                >
+                  Football
+                </span>
+                {selectedSport === "football" && (
+                  <select 
+                    value={selectedLeague}
+                    onChange={(e) => setSelectedLeague(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
+                  >
+                    {tournamentsBySport.football.map(t => (
+                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span 
+                  onClick={() => {
+                    setSelectedSport("baseball");
+                    setSelectedLeague("all");
+                  }}
+                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "baseball" && "text-brand")}
+                >
+                  Baseball
+                </span>
+                {selectedSport === "baseball" && (
+                  <select 
+                    value={selectedLeague}
+                    onChange={(e) => setSelectedLeague(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
+                  >
+                    {tournamentsBySport.baseball.map(t => (
+                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span 
+                  onClick={() => {
+                    setSelectedSport("cricket");
+                    setSelectedLeague("all");
+                  }}
+                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "cricket" && "text-brand")}
+                >
+                  Cricket
+                </span>
+                {selectedSport === "cricket" && (
+                  <select 
+                    value={selectedLeague}
+                    onChange={(e) => setSelectedLeague(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
+                  >
+                    {tournamentsBySport.cricket.map(t => (
+                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span 
+                  onClick={() => {
+                    setSelectedSport("basketball");
+                    setSelectedLeague("all");
+                  }}
+                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "basketball" && "text-brand")}
+                >
+                  Basketball
+                </span>
+                {selectedSport === "basketball" && (
+                  <select 
+                    value={selectedLeague}
+                    onChange={(e) => setSelectedLeague(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
+                  >
+                    {tournamentsBySport.basketball.map(t => (
+                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span 
+                  onClick={() => {
+                    setSelectedSport("tennis");
+                    setSelectedLeague("all");
+                  }}
+                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "tennis" && "text-brand")}
+                >
+                  Tennis
+                </span>
+                {selectedSport === "tennis" && (
+                  <select 
+                    value={selectedLeague}
+                    onChange={(e) => setSelectedLeague(e.target.value)}
+                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
+                  >
+                    {tournamentsBySport.tennis.map(t => (
+                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
               <span 
-                onClick={() => setSelectedSport("football")}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "football" && "text-brand")}
-              >
-                Football
-              </span>
-              <span 
-                onClick={() => setSelectedSport("baseball")}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "baseball" && "text-brand")}
-              >
-                Baseball
-              </span>
-              <span 
-                onClick={() => setSelectedSport("cricket")}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "cricket" && "text-brand")}
-              >
-                Cricket
-              </span>
-              <span 
-                onClick={() => setSelectedSport("basketball")}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "basketball" && "text-brand")}
-              >
-                Basketball
-              </span>
-              <span 
-                onClick={() => setSelectedSport("tennis")}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "tennis" && "text-brand")}
-              >
-                Tennis
-              </span>
-              <span 
-                onClick={() => setSelectedSport("formula1")}
+                onClick={() => {
+                  setSelectedSport("formula1");
+                  setSelectedLeague("all");
+                }}
                 className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "formula1" && "text-brand")}
               >
                 Formula 1
@@ -763,7 +939,7 @@ export default function App() {
             <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Match Center</h2>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-brand animate-ping" />
-              <span className="text-xs font-bold text-brand uppercase tracking-wider">{matches.filter(m => m.status === 'live').length} Live Now</span>
+              <span className="text-xs font-bold text-brand uppercase tracking-wider">{filterMatches(matches, 'live').length} Live Now</span>
             </div>
           </div>
           
@@ -778,15 +954,15 @@ export default function App() {
                 {selectedSport === "all" && (
                   <>
                     {/* Cricket Section (Real-World) */}
-                    {matches.filter(m => m.sport === 'cricket' && m.status === 'live').length > 0 && (
+                    {filterMatches(matches, 'live').filter(m => m.sport === 'cricket').length > 0 && (
                       <div className="space-y-4">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2 px-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
                           Live Cricket
                         </h3>
                         <div className="space-y-4">
-                          {matches
-                            .filter(m => m.sport === 'cricket' && m.status === 'live')
+                          {filterMatches(matches, 'live')
+                            .filter(m => m.sport === 'cricket')
                             .map((match) => (
                               <motion.div
                                 key={match.id}
@@ -810,7 +986,7 @@ export default function App() {
                                   <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                      Cricbuzz • Live
+                                      {match.league || "Cricbuzz"} • Live
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -855,15 +1031,15 @@ export default function App() {
                     )}
 
                     {/* Baseball Section (Real-World) */}
-                    {matches.filter(m => m.sport === 'baseball' && m.status === 'live').length > 0 && (
+                    {filterMatches(matches, 'live').filter(m => m.sport === 'baseball').length > 0 && (
                       <div className="space-y-4">
                         <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2 px-2">
                           <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
                           Live Baseball
                         </h3>
                         <div className="space-y-4">
-                          {matches
-                            .filter(m => m.sport === 'baseball' && m.status === 'live')
+                          {filterMatches(matches, 'live')
+                            .filter(m => m.sport === 'baseball')
                             .map((match) => (
                               <motion.div
                                 key={match.id}
@@ -887,7 +1063,7 @@ export default function App() {
                                   <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
                                     <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                      MLB • Live
+                                      {match.league || "MLB"} • Live
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-2">
@@ -940,19 +1116,8 @@ export default function App() {
                     {selectedSport === "all" ? "Other Live Matches" : `Live ${selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1)}`}
                   </h3>
                   <div className="space-y-4">
-                    {matches.filter(m => 
-                      m.status === 'live' && 
-                      (selectedSport === "all" 
-                        ? (m.sport !== 'cricket' && m.sport !== 'baseball') 
-                        : m.sport === selectedSport)
-                    ).length > 0 ? (
-                      matches
-                        .filter(m => 
-                          m.status === 'live' && 
-                          (selectedSport === "all" 
-                            ? (m.sport !== 'cricket' && m.sport !== 'baseball') 
-                            : m.sport === selectedSport)
-                        )
+                    {filterMatches(matches, 'live', selectedSport === "all" ? ['cricket', 'baseball'] : []).length > 0 ? (
+                      filterMatches(matches, 'live', selectedSport === "all" ? ['cricket', 'baseball'] : [])
                         .map((match) => (
                           <motion.div
                             key={match.id}
@@ -1031,9 +1196,8 @@ export default function App() {
                     Recently Finished
                   </h3>
                   <div className="space-y-4">
-                    {matches.filter(m => m.status === 'finished' && (selectedSport === "all" || m.sport === selectedSport)).length > 0 ? (
-                      matches
-                        .filter(m => m.status === 'finished' && (selectedSport === "all" || m.sport === selectedSport))
+                    {filterMatches(matches, 'finished').length > 0 ? (
+                      filterMatches(matches, 'finished')
                         .map((match) => (
                           <motion.div
                             key={match.id}
@@ -1112,9 +1276,8 @@ export default function App() {
                     Upcoming
                   </h3>
                   <div className="space-y-4">
-                    {matches.filter(m => m.status === 'scheduled' && (selectedSport === "all" || m.sport === selectedSport)).length > 0 ? (
-                      matches
-                        .filter(m => m.status === 'scheduled' && (selectedSport === "all" || m.sport === selectedSport))
+                    {filterMatches(matches, 'scheduled').length > 0 ? (
+                      filterMatches(matches, 'scheduled')
                         .map((match) => (
                           <motion.div
                             key={match.id}
@@ -1141,7 +1304,7 @@ export default function App() {
                                   match.status === 'live' ? "bg-red-500 animate-pulse" : "bg-slate-200"
                                 )} />
                                 <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                  {match.sport} • {match.status === 'live' ? "In Play" : match.status}
+                                  {match.league || match.sport} • {match.status === 'live' ? "In Play" : match.status}
                                 </span>
                               </div>
                               <div className="flex items-center gap-2">
@@ -1233,6 +1396,11 @@ export default function App() {
                             </div>
 
                             <div className="flex flex-col items-center gap-4 md:gap-6">
+                              {selectedMatch.league && (
+                                <div className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-[-1rem]">
+                                  {selectedMatch.league}
+                                </div>
+                              )}
                               <div className="flex items-center gap-4 md:gap-8">
                                 <div className="flex flex-col items-center">
                                   <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{selectedMatch.homeScore}</span>
@@ -1598,14 +1766,53 @@ export default function App() {
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="flex flex-col items-center justify-center h-[600px] glass rounded-[3rem] text-slate-100 space-y-8 border-dashed">
-              <div className="w-32 h-32 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100">
-                <Zap className="w-16 h-16 text-brand" />
-              </div>
-              <div className="text-center space-y-2">
-                <p className="text-2xl font-black uppercase tracking-tighter font-display text-slate-900">Select a Broadcast</p>
-                <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-300">Live Match Center v2.0</p>
-              </div>
+            <div className="flex flex-col items-center justify-center min-h-[600px] glass rounded-[3rem] p-12 text-center space-y-12">
+              {selectedSport === "football" ? (
+                <div className="w-full space-y-10">
+                  <div className="space-y-4">
+                    <div className="w-24 h-24 bg-brand/10 rounded-3xl mx-auto flex items-center justify-center border border-brand/20">
+                      <Trophy className="w-12 h-12 text-brand" />
+                    </div>
+                    <div className="space-y-1">
+                      <h2 className="text-3xl font-black uppercase tracking-tighter font-display text-slate-900">Football Universe</h2>
+                      <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-400">Explore Major Tournaments</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                    {tournamentsBySport.football.filter(t => t.id !== 'all').map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={() => setSelectedLeague(t.id)}
+                        className={cn(
+                          "p-6 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-4 group",
+                          selectedLeague === t.id 
+                            ? "bg-brand border-brand text-white shadow-xl shadow-brand/20" 
+                            : "glass border-sky-100 hover:border-brand/40 text-slate-600 hover:text-brand"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                          selectedLeague === t.id ? "bg-white/20" : "bg-brand/5 group-hover:bg-brand/10"
+                        )}>
+                          <Trophy className={cn("w-5 h-5", selectedLeague === t.id ? "text-white" : "text-brand")} />
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{t.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="w-32 h-32 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100">
+                    <Zap className="w-16 h-16 text-brand" />
+                  </div>
+                  <div className="text-center space-y-2">
+                    <p className="text-2xl font-black uppercase tracking-tighter font-display text-slate-900">Select a Broadcast</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-300">Live Match Center v2.0</p>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </TabsContent>
