@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Clock, Activity, MessageSquare, Zap, ChevronRight, LogIn, LogOut, User, Heart, Send, Bell, Settings, Share2, TrendingUp, Users, Award } from "lucide-react";
+import { Trophy, Clock, Activity, MessageSquare, Zap, ChevronRight, ChevronDown, LogIn, LogOut, User, Heart, Send, Bell, Settings, Share2, TrendingUp, Users, Award } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
 import { GoogleGenAI } from "@google/genai";
@@ -90,6 +90,107 @@ const handleFirestoreError = (error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+const CricketRankings = () => {
+  const [rankings, setRankings] = useState<any[]>([]);
+  const [type, setType] = useState("1"); // 1: Test, 2: ODI, 3: T20
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchRankings = async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/cricket/rankings/${type}`);
+        const data = await response.json();
+        if (data.data && Array.isArray(data.data)) {
+          setRankings(data.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch rankings:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRankings();
+  }, [type]);
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-1">
+          <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">ICC Player Rankings</h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Official World Standings</p>
+        </div>
+        <div className="flex gap-2 bg-sky-50 p-1.5 rounded-2xl border border-sky-100">
+          {[
+            { id: "1", label: "Test" },
+            { id: "2", label: "ODI" },
+            { id: "3", label: "T20" }
+          ].map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setType(t.id)}
+              className={cn(
+                "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300",
+                type === t.id ? "bg-brand text-white shadow-lg shadow-brand/20" : "text-slate-400 hover:text-slate-600 hover:bg-white"
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {loading ? (
+          Array(6).fill(0).map((_, i) => (
+            <div key={i} className="glass rounded-[2rem] p-8 h-48 animate-pulse" />
+          ))
+        ) : rankings.length > 0 ? (
+          rankings.map((player: any, idx: number) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              className="glass border-sky-100 rounded-[2rem] p-8 relative overflow-hidden group hover:shadow-2xl hover:shadow-brand/5 transition-all duration-500"
+            >
+              <div className="absolute top-0 right-0 p-6">
+                <span className="text-5xl font-black text-slate-50 group-hover:text-brand/5 transition-colors">#{player.rank}</span>
+              </div>
+              <div className="space-y-6 relative z-10">
+                <div className="flex items-center gap-5">
+                  <div className="w-14 h-14 rounded-2xl bg-brand/10 flex items-center justify-center border border-brand/20 group-hover:rotate-6 transition-transform">
+                    <Users className="w-7 h-7 text-brand" />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-900 text-lg leading-tight tracking-tight">{player.player_name}</h4>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{player.team_name}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between pt-6 border-t border-slate-100/50">
+                  <div className="text-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Rating</p>
+                    <p className="font-display font-black text-2xl text-slate-900">{player.rating}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Points</p>
+                    <p className="font-display font-black text-2xl text-slate-900">{player.points || "-"}</p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        ) : (
+          <div className="col-span-full py-20 text-center glass rounded-[2rem] border-dashed border-2 border-slate-100">
+            <Users className="w-12 h-12 text-slate-100 mx-auto mb-4" />
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">No ranking data available</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
@@ -123,12 +224,19 @@ export default function App() {
       const currentMatch = matches.find(m => m.id === selectedMatchId);
       
       const isSportMatch = selectedSport === "all" || (currentMatch && currentMatch.sport === selectedSport);
-      const isLeagueMatch = selectedLeague === "all" || (currentMatch && currentMatch.league === selectedLeague);
+      const isLeagueMatch = selectedLeague === "all" || 
+        (currentMatch && currentMatch.league && (
+          currentMatch.league.toLowerCase().includes(selectedLeague.toLowerCase()) || 
+          selectedLeague.toLowerCase().includes(currentMatch.league.toLowerCase())
+        ));
 
       if (!currentMatch || !isSportMatch || !isLeagueMatch) {
         const filtered = matches.filter(m => 
           (selectedSport === "all" || m.sport === selectedSport) && 
-          (selectedLeague === "all" || m.league === selectedLeague)
+          (selectedLeague === "all" || (m.league && (
+            m.league.toLowerCase().includes(selectedLeague.toLowerCase()) || 
+            selectedLeague.toLowerCase().includes(m.league.toLowerCase())
+          )))
         );
         
         if (filtered.length > 0) {
@@ -144,7 +252,14 @@ export default function App() {
       const sportMatch = selectedSport === "all" 
         ? !excludeSports.includes(m.sport)
         : m.sport === selectedSport;
-      const leagueMatch = selectedLeague === "all" || m.league === selectedLeague;
+      
+      // Flexible league matching
+      const leagueMatch = selectedLeague === "all" || 
+        (m.league && (
+          m.league.toLowerCase().includes(selectedLeague.toLowerCase()) || 
+          selectedLeague.toLowerCase().includes(m.league.toLowerCase())
+        ));
+
       const statusMatch = !status || m.status === status;
       return sportMatch && leagueMatch && statusMatch;
     });
@@ -240,10 +355,6 @@ export default function App() {
       }
     });
   };
-
-  useEffect(() => {
-    setSelectedLeague("all");
-  }, [selectedSport]);
 
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
@@ -640,7 +751,7 @@ export default function App() {
     }
   }
 
-  const tournamentsBySport: Record<string, { id: string, name: string }[]> = {
+  const [tournamentsBySport, setTournamentsBySport] = useState<Record<string, { id: string, name: string }[]>>({
     football: [
       { id: "all", name: "All Tournaments" },
       { id: "Premier League", name: "Premier League" },
@@ -691,6 +802,118 @@ export default function App() {
       { id: "Australian Open", name: "Australian Open" },
       { id: "ATP Finals", name: "ATP Finals" },
     ],
+  });
+
+  // Dynamically update tournament lists based on real-world data
+  useEffect(() => {
+    if (matches.length > 0) {
+      const newTournaments = { ...tournamentsBySport };
+      let changed = false;
+
+      matches.forEach(match => {
+        if (match.league && match.sport) {
+          const sportList = newTournaments[match.sport] || [{ id: "all", name: "All Tournaments" }];
+          if (!sportList.find(t => t.id === match.league)) {
+            sportList.push({ id: match.league, name: match.league });
+            newTournaments[match.sport] = sportList;
+            changed = true;
+          }
+        }
+      });
+
+      if (changed) {
+        setTournamentsBySport(newTournaments);
+      }
+    }
+  }, [matches]);
+
+  const SportNavItem = ({ 
+    sport, 
+    label, 
+    selectedSport, 
+    selectedLeague, 
+    setSelectedSport, 
+    setSelectedLeague, 
+    tournaments 
+  }: { 
+    sport: string, 
+    label: string, 
+    selectedSport: string, 
+    selectedLeague: string, 
+    setSelectedSport: (s: string) => void, 
+    setSelectedLeague: (l: string) => void, 
+    tournaments?: { id: string, name: string }[] 
+  }) => {
+    const [isHovered, setIsHovered] = useState(false);
+
+    return (
+      <div 
+        className="relative"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <div 
+          onClick={() => {
+            setSelectedSport(sport);
+            setSelectedLeague("all");
+          }}
+          className={cn(
+            "hover:text-brand transition-all cursor-pointer flex items-center gap-1 py-2 h-20 relative", 
+            selectedSport === sport && "text-brand"
+          )}
+        >
+          <span>{label}</span>
+          {selectedSport === sport && (
+            <motion.div 
+              layoutId="active-sport"
+              className="absolute bottom-0 left-0 right-0 h-1 bg-brand rounded-full"
+            />
+          )}
+          {tournaments && <ChevronDown className={cn("w-3 h-3 transition-transform duration-300", isHovered && "rotate-180")} />}
+        </div>
+        
+        {tournaments && (
+          <AnimatePresence>
+            {isHovered && (
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+                className="absolute top-full left-0 w-64 glass border border-sky-100 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-2 z-[60] overflow-hidden"
+              >
+                <div className="max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+                  <div className="grid gap-1">
+                    {tournaments.map((t) => (
+                      <button
+                        key={t.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedSport(sport);
+                          setSelectedLeague(t.id);
+                          setIsHovered(false);
+                        }}
+                        className={cn(
+                          "w-full text-left px-4 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-between group/item",
+                          selectedLeague === t.id && selectedSport === sport
+                            ? "bg-brand text-white shadow-lg shadow-brand/20"
+                            : "hover:bg-brand/5 text-slate-500 hover:text-brand"
+                        )}
+                      >
+                        {t.name}
+                        {selectedLeague === t.id && selectedSport === sport && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -733,136 +956,82 @@ export default function App() {
             </h1>
           </div>
           
-          <div className="flex items-center gap-10 overflow-hidden">
+          <div className="flex items-center gap-10">
             <div className="hidden lg:flex items-center gap-10 text-xs font-bold uppercase tracking-widest text-slate-400 shrink-0">
               <span 
                 onClick={() => {
                   setSelectedSport("all");
                   setSelectedLeague("all");
                 }}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "all" && "text-brand")}
+                className={cn("hover:text-brand transition-all cursor-pointer py-2 h-20 flex items-center relative", selectedSport === "all" && "text-brand")}
               >
                 All
+                {selectedSport === "all" && (
+                  <motion.div 
+                    layoutId="active-sport"
+                    className="absolute bottom-0 left-0 right-0 h-1 bg-brand rounded-full"
+                  />
+                )}
               </span>
-              <div className="flex items-center gap-2">
-                <span 
-                  onClick={() => {
-                    setSelectedSport("football");
-                    setSelectedLeague("all");
-                  }}
-                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "football" && "text-brand")}
-                >
-                  Football
-                </span>
-                {selectedSport === "football" && (
-                  <select 
-                    value={selectedLeague}
-                    onChange={(e) => setSelectedLeague(e.target.value)}
-                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
-                  >
-                    {tournamentsBySport.football.map(t => (
-                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span 
-                  onClick={() => {
-                    setSelectedSport("baseball");
-                    setSelectedLeague("all");
-                  }}
-                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "baseball" && "text-brand")}
-                >
-                  Baseball
-                </span>
-                {selectedSport === "baseball" && (
-                  <select 
-                    value={selectedLeague}
-                    onChange={(e) => setSelectedLeague(e.target.value)}
-                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
-                  >
-                    {tournamentsBySport.baseball.map(t => (
-                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span 
-                  onClick={() => {
-                    setSelectedSport("cricket");
-                    setSelectedLeague("all");
-                  }}
-                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "cricket" && "text-brand")}
-                >
-                  Cricket
-                </span>
-                {selectedSport === "cricket" && (
-                  <select 
-                    value={selectedLeague}
-                    onChange={(e) => setSelectedLeague(e.target.value)}
-                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
-                  >
-                    {tournamentsBySport.cricket.map(t => (
-                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span 
-                  onClick={() => {
-                    setSelectedSport("basketball");
-                    setSelectedLeague("all");
-                  }}
-                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "basketball" && "text-brand")}
-                >
-                  Basketball
-                </span>
-                {selectedSport === "basketball" && (
-                  <select 
-                    value={selectedLeague}
-                    onChange={(e) => setSelectedLeague(e.target.value)}
-                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
-                  >
-                    {tournamentsBySport.basketball.map(t => (
-                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span 
-                  onClick={() => {
-                    setSelectedSport("tennis");
-                    setSelectedLeague("all");
-                  }}
-                  className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "tennis" && "text-brand")}
-                >
-                  Tennis
-                </span>
-                {selectedSport === "tennis" && (
-                  <select 
-                    value={selectedLeague}
-                    onChange={(e) => setSelectedLeague(e.target.value)}
-                    className="bg-transparent border-none text-[10px] font-black uppercase tracking-widest text-brand focus:ring-0 cursor-pointer outline-none"
-                  >
-                    {tournamentsBySport.tennis.map(t => (
-                      <option key={t.id} value={t.id} className="bg-white text-slate-900">{t.name}</option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <span 
-                onClick={() => {
-                  setSelectedSport("formula1");
-                  setSelectedLeague("all");
-                }}
-                className={cn("hover:text-brand transition-colors cursor-pointer", selectedSport === "formula1" && "text-brand")}
-              >
-                Formula 1
-              </span>
+              
+              <SportNavItem 
+                sport="football" 
+                label="Football" 
+                selectedSport={selectedSport} 
+                selectedLeague={selectedLeague} 
+                setSelectedSport={setSelectedSport} 
+                setSelectedLeague={setSelectedLeague} 
+                tournaments={tournamentsBySport.football}
+              />
+
+              <SportNavItem 
+                sport="baseball" 
+                label="Baseball" 
+                selectedSport={selectedSport} 
+                selectedLeague={selectedLeague} 
+                setSelectedSport={setSelectedSport} 
+                setSelectedLeague={setSelectedLeague} 
+                tournaments={tournamentsBySport.baseball}
+              />
+
+              <SportNavItem 
+                sport="cricket" 
+                label="Cricket" 
+                selectedSport={selectedSport} 
+                selectedLeague={selectedLeague} 
+                setSelectedSport={setSelectedSport} 
+                setSelectedLeague={setSelectedLeague} 
+                tournaments={tournamentsBySport.cricket}
+              />
+
+              <SportNavItem 
+                sport="basketball" 
+                label="Basketball" 
+                selectedSport={selectedSport} 
+                selectedLeague={selectedLeague} 
+                setSelectedSport={setSelectedSport} 
+                setSelectedLeague={setSelectedLeague} 
+                tournaments={tournamentsBySport.basketball}
+              />
+
+              <SportNavItem 
+                sport="tennis" 
+                label="Tennis" 
+                selectedSport={selectedSport} 
+                selectedLeague={selectedLeague} 
+                setSelectedSport={setSelectedSport} 
+                setSelectedLeague={setSelectedLeague} 
+                tournaments={tournamentsBySport.tennis}
+              />
+
+              <SportNavItem 
+                sport="formula1" 
+                label="Formula 1" 
+                selectedSport={selectedSport} 
+                selectedLeague={selectedLeague} 
+                setSelectedSport={setSelectedSport} 
+                setSelectedLeague={setSelectedLeague} 
+              />
             </div>
 
             <div className="flex items-center gap-6 shrink-0">
@@ -935,12 +1104,29 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 md:px-6 py-8 md:py-12 grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-10">
         {/* Sidebar: Match List */}
         <div className="lg:col-span-4 space-y-10">
-          <div className="flex items-center justify-between px-1 md:px-2">
-            <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Match Center</h2>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-brand animate-ping" />
-              <span className="text-xs font-bold text-brand uppercase tracking-wider">{filterMatches(matches, 'live').length} Live Now</span>
+          <div className="flex flex-col gap-4 px-1 md:px-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Match Center</h2>
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-brand animate-ping" />
+                <span className="text-xs font-bold text-brand uppercase tracking-wider">{filterMatches(matches, 'live').length} Live Now</span>
+              </div>
             </div>
+            
+            {selectedLeague !== "all" && (
+              <div className="flex items-center justify-between bg-brand/5 border border-brand/10 p-3 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <Trophy className="w-3.5 h-3.5 text-brand" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-brand">{selectedLeague}</span>
+                </div>
+                <button 
+                  onClick={() => setSelectedLeague("all")}
+                  className="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-brand transition-colors"
+                >
+                  Clear Filter
+                </button>
+              </div>
+            )}
           </div>
           
           <div className="space-y-10">
@@ -1113,7 +1299,9 @@ export default function App() {
                 <div className="space-y-4">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 flex items-center gap-2 px-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                    {selectedSport === "all" ? "Other Live Matches" : `Live ${selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1)}`}
+                    {selectedLeague !== "all" 
+                      ? `${selectedLeague} Live` 
+                      : selectedSport === "all" ? "Other Live Matches" : `Live ${selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1)}`}
                   </h3>
                   <div className="space-y-4">
                     {filterMatches(matches, 'live', selectedSport === "all" ? ['cricket', 'baseball'] : []).length > 0 ? (
@@ -1185,7 +1373,9 @@ export default function App() {
                           </motion.div>
                         ))
                     ) : (
-                      <p className="text-[10px] text-slate-300 italic px-2">No live {selectedSport === 'all' ? 'matches' : selectedSport} right now</p>
+                      <p className="text-[10px] text-slate-300 italic px-2">
+                        No live {selectedLeague !== 'all' ? selectedLeague : (selectedSport === 'all' ? 'matches' : selectedSport)} right now
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1193,7 +1383,7 @@ export default function App() {
                 {/* Finished Section */}
                 <div className="space-y-4">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">
-                    Recently Finished
+                    {selectedLeague !== "all" ? `${selectedLeague} Results` : "Recently Finished"}
                   </h3>
                   <div className="space-y-4">
                     {filterMatches(matches, 'finished').length > 0 ? (
@@ -1265,7 +1455,9 @@ export default function App() {
                           </motion.div>
                         ))
                     ) : (
-                      <p className="text-[10px] text-slate-300 italic px-2">No recently finished matches</p>
+                      <p className="text-[10px] text-slate-300 italic px-2">
+                        No {selectedLeague !== 'all' ? selectedLeague : 'recently finished'} matches
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1273,7 +1465,7 @@ export default function App() {
                 {/* Upcoming Section */}
                 <div className="space-y-4">
                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 px-2">
-                    Upcoming
+                    {selectedLeague !== "all" ? `${selectedLeague} Upcoming` : "Upcoming"}
                   </h3>
                   <div className="space-y-4">
                     {filterMatches(matches, 'scheduled').length > 0 ? (
@@ -1345,7 +1537,9 @@ export default function App() {
                           </motion.div>
                         ))
                     ) : (
-                      <p className="text-[10px] text-slate-300 italic px-2">No upcoming matches</p>
+                      <p className="text-[10px] text-slate-300 italic px-2">
+                        No upcoming {selectedLeague !== 'all' ? selectedLeague : 'matches'} scheduled
+                      </p>
                     )}
                   </div>
                 </div>
@@ -1367,6 +1561,11 @@ export default function App() {
               <TabsTrigger value="leaderboard" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
                 <TrendingUp className="w-4 h-4 mr-2" /> Leaderboard
               </TabsTrigger>
+              {selectedSport === "cricket" && (
+                <TabsTrigger value="rankings" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all">
+                  <Users className="w-4 h-4 mr-2" /> Player Rankings
+                </TabsTrigger>
+              )}
             </TabsList>
 
             <TabsContent value="matches" className="outline-none">
@@ -1767,52 +1966,13 @@ export default function App() {
             </AnimatePresence>
           ) : (
             <div className="flex flex-col items-center justify-center min-h-[600px] glass rounded-[3rem] p-12 text-center space-y-12">
-              {selectedSport === "football" ? (
-                <div className="w-full space-y-10">
-                  <div className="space-y-4">
-                    <div className="w-24 h-24 bg-brand/10 rounded-3xl mx-auto flex items-center justify-center border border-brand/20">
-                      <Trophy className="w-12 h-12 text-brand" />
-                    </div>
-                    <div className="space-y-1">
-                      <h2 className="text-3xl font-black uppercase tracking-tighter font-display text-slate-900">Football Universe</h2>
-                      <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-400">Explore Major Tournaments</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {tournamentsBySport.football.filter(t => t.id !== 'all').map((t) => (
-                      <button
-                        key={t.id}
-                        onClick={() => setSelectedLeague(t.id)}
-                        className={cn(
-                          "p-6 rounded-2xl border transition-all duration-300 flex flex-col items-center gap-4 group",
-                          selectedLeague === t.id 
-                            ? "bg-brand border-brand text-white shadow-xl shadow-brand/20" 
-                            : "glass border-sky-100 hover:border-brand/40 text-slate-600 hover:text-brand"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                          selectedLeague === t.id ? "bg-white/20" : "bg-brand/5 group-hover:bg-brand/10"
-                        )}>
-                          <Trophy className={cn("w-5 h-5", selectedLeague === t.id ? "text-white" : "text-brand")} />
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest leading-tight">{t.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="w-32 h-32 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100">
-                    <Zap className="w-16 h-16 text-brand" />
-                  </div>
-                  <div className="text-center space-y-2">
-                    <p className="text-2xl font-black uppercase tracking-tighter font-display text-slate-900">Select a Broadcast</p>
-                    <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-300">Live Match Center v2.0</p>
-                  </div>
-                </>
-              )}
+              <div className="w-32 h-32 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100">
+                <Zap className="w-16 h-16 text-brand" />
+              </div>
+              <div className="text-center space-y-2">
+                <p className="text-2xl font-black uppercase tracking-tighter font-display text-slate-900">Select a Broadcast</p>
+                <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-300">Live Match Center v2.0</p>
+              </div>
             </div>
           )}
         </TabsContent>
@@ -1916,6 +2076,10 @@ export default function App() {
               ))}
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="rankings" className="outline-none">
+          <CricketRankings />
         </TabsContent>
       </Tabs>
     </div>
