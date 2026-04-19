@@ -103,9 +103,19 @@ service cloud.firestore {
              data.timestamp is number;
     }
 
+    function isValidBracket(data) {
+      return data.matches is list &&
+             data.updatedAt is number;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /user_brackets/{userId} {
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidBracket(request.resource.data);
+    }
 
     match /users/{userId} {
       allow read: if true; // Publicly readable for leaderboard/profiles

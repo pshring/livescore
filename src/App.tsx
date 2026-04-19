@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { io, Socket } from "socket.io-client";
 import { Match, MatchEvent, ChatMessage, UserProfile, SocialEvent, PredictionRecord } from "./types";
+import { BracketBuilder } from './components/BracketBuilder';
+import { toggleFavorite, fetchFavorites } from './services/favoritesService';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -866,11 +868,19 @@ const FootballLineups = ({ matchId }: { matchId: string }) => {
 const WorldCupTeamsViewer = ({ 
   onSearchSquad, 
   onViewSocial,
-  onViewHighlights
+  onViewHighlights,
+  onViewBracket,
+  user,
+  favorites,
+  onFavoriteChanged
 }: { 
   onSearchSquad: (team: string) => void, 
   onViewSocial: () => void,
-  onViewHighlights: () => void
+  onViewHighlights: () => void,
+  onViewBracket: () => void,
+  user: any,
+  favorites: string[],
+  onFavoriteChanged: () => void
 }) => {
   const [teams, setTeams] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -935,6 +945,9 @@ const WorldCupTeamsViewer = ({
           <Badge variant="outline" className="bg-emerald-50 text-emerald-600 border-emerald-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest cursor-pointer hover:bg-emerald-100" onClick={onViewHighlights}>
             <Zap className="w-3 h-3 mr-2" /> Watch Highlights
           </Badge>
+          <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 px-3 py-1 text-[10px] font-bold uppercase tracking-widest cursor-pointer hover:bg-amber-100" onClick={onViewBracket}>
+            <Trophy className="w-3 h-3 mr-2" /> Bracket Builder
+          </Badge>
         </div>
       </div>
 
@@ -949,6 +962,16 @@ const WorldCupTeamsViewer = ({
             <Card className="glass border-sky-100 rounded-[2rem] overflow-hidden hover:border-brand/40 transition-all duration-500 group relative">
               <CardContent className="p-8 flex flex-col items-center gap-6 text-center h-full">
                 <div className="w-24 h-16 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center relative shadow-inner group-hover:scale-110 transition-transform duration-700">
+                  <button 
+                    className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-all shadow-sm"
+                    onClick={async () => {
+                      if (!user) return;
+                      await toggleFavorite(user, team.id, favorites.includes(team.id));
+                      onFavoriteChanged();
+                    }}
+                  >
+                    <Heart className={cn("w-3 h-3 transition-colors", favorites.includes(team.id) ? "fill-red-500 text-red-500" : "text-slate-400")} />
+                  </button>
                   {team.image ? (
                      <img 
                         src={team.image} 
@@ -973,6 +996,13 @@ const WorldCupTeamsViewer = ({
                     <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Rank #--</span>
                   </div>
                 </div>
+
+                <button 
+                  onClick={() => onViewBracket()}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-brand text-white shadow-lg shadow-brand/20 hover:shadow-brand/30 hover:scale-[1.02] transition-all text-[9px] font-black uppercase tracking-widest"
+                >
+                  <Trophy className="w-3.5 h-3.5" /> Start Predictions
+                </button>
 
                 <div className="grid grid-cols-2 gap-3 w-full">
                   <button 
@@ -1020,18 +1050,48 @@ const FootballRankings = () => {
   const [standings, setStandings] = useState<any[]>([]);
   const [leagueId, setLeagueId] = useState("39"); // Default: PL
   const [loading, setLoading] = useState(false);
+  const cache = useRef<Record<string, any[]>>({});
+  const lastFetchTime = useRef<Record<string, number>>({});
+  const REQUEST_COOLDOWN = 60000; // 1 minute
 
   useEffect(() => {
     const fetchStandings = async () => {
+      // Check cache first
+      if (cache.current[leagueId] && (Date.now() - (lastFetchTime.current[leagueId] || 0) < REQUEST_COOLDOWN)) {
+        setStandings(cache.current[leagueId]);
+        return;
+      }
+
       setLoading(true);
+      
       try {
         const response = await fetch(`/api/football/standings/${leagueId}`);
-        const data = await response.json();
-        if (data.response && data.response[0]?.league?.standings) {
-          setStandings(data.response[0].league.standings[0]);
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response && data.response[0]?.league?.standings) {
+            const newStandings = data.response[0].league.standings[0];
+            setStandings(newStandings);
+            cache.current[leagueId] = newStandings;
+            lastFetchTime.current[leagueId] = Date.now();
+            return;
+          }
+        }
+        
+        // If we reach here, it failed.
+        // If we have cached data, use it. Otherwise, set empty.
+        if (cache.current[leagueId]) {
+          setStandings(cache.current[leagueId]);
+        } else {
+          setStandings([]);
         }
       } catch (error) {
-        console.error("Failed to fetch football standings:", error);
+        // Silent catch: just ensure the UI state is handled
+        if (cache.current[leagueId]) {
+          setStandings(cache.current[leagueId]);
+        } else {
+          setStandings([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -1259,6 +1319,22 @@ export default function App() {
   const [footballMatchDetail, setFootballMatchDetail] = useState<any>(null);
   const [loadingMatchDetail, setLoadingMatchDetail] = useState(false);
   const [expertPredictions, setExpertPredictions] = useState<any[]>([]);
+  const [worldCupSubTab, setWorldCupSubTab] = useState<"hub" | "bracket">("hub");
+  const [favorites, setFavorites] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchFavorites(user).then(setFavorites);
+    } else {
+      setFavorites([]);
+    }
+  }, [user]);
+
+  const refreshFavorites = () => {
+    if (user) {
+      fetchFavorites(user).then(setFavorites);
+    }
+  };
   
   const processedEvents = useRef<Set<string>>(new Set());
   const requestQueue = useRef<(() => Promise<void>)[]>([]);
@@ -3333,6 +3409,9 @@ export default function App() {
 
           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
             <TabsList className="glass p-1 rounded-xl md:rounded-2xl w-full flex overflow-x-auto no-scrollbar justify-start h-auto gap-1 mb-6 md:mb-8">
+              <TabsTrigger value="for-you" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
+                <Heart className="w-4 h-4 mr-2" /> For You
+              </TabsTrigger>
               <TabsTrigger value="matches" className="rounded-lg md:rounded-xl px-4 md:px-6 py-2 md:py-3 text-[10px] md:text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
                 <Trophy className="w-4 h-4 mr-2" /> Matches
               </TabsTrigger>
@@ -3352,17 +3431,76 @@ export default function App() {
               )}
             </TabsList>
 
+            <TabsContent value="for-you" className="outline-none">
+              <div className="space-y-6">
+                <h3 className="text-xl font-black uppercase text-slate-800 tracking-tighter">Your Followed Teams</h3>
+                {favorites.length === 0 ? (
+                  <div className="text-center py-20 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                    <Heart className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500 font-bold">No followed teams yet.</p>
+                    <p className="text-slate-400 text-sm">Follow some teams from the Nations Hub!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {matches
+                      .filter(m => favorites.includes(m.homeTeam) || favorites.includes(m.awayTeam))
+                      .map(m => (
+                        <Card key={m.id} className="glass rounded-2xl overflow-hidden hover:border-brand/40 transition-all">
+                          <CardContent className="p-4 flex items-center justify-between">
+                            <div className="text-xs font-black uppercase text-slate-600">{m.homeTeam} vs {m.awayTeam}</div>
+                            <Badge className="bg-brand text-white">{m.status}</Badge>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
             <TabsContent value="matches" className="outline-none">
               {selectedLeague === "World Cup" ? (
-                <WorldCupTeamsViewer 
-                  onSearchSquad={(team) => {
-                    setPlayerSearchQuery(team);
-                    searchPlayers(team);
-                    setActiveMainTab("player-search");
-                  }}
-                  onViewSocial={() => setActiveMainTab("social")}
-                  onViewHighlights={() => setActiveMainTab("matches")} // In this case highlights are in detail view, but for now just jump back or show list
-                />
+                <div className="space-y-8">
+                  <div className="flex justify-center">
+                    <div className="bg-slate-100/50 p-1 rounded-2xl border border-slate-200/50 flex gap-1">
+                      <button 
+                         onClick={() => setWorldCupSubTab("hub")}
+                         className={cn(
+                           "px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                           worldCupSubTab === "hub" ? "bg-white text-slate-900 shadow-md" : "text-slate-400 hover:text-slate-600"
+                         )}
+                      >
+                        Nations Hub
+                      </button>
+                      <button 
+                         onClick={() => setWorldCupSubTab("bracket")}
+                         className={cn(
+                           "px-8 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                           worldCupSubTab === "bracket" ? "bg-white text-slate-900 shadow-md" : "text-slate-400 hover:text-slate-600"
+                         )}
+                      >
+                        Bracket Builder
+                      </button>
+                    </div>
+                  </div>
+
+                  {worldCupSubTab === "hub" ? (
+                    <WorldCupTeamsViewer 
+                      onSearchSquad={(team) => {
+                        setPlayerSearchQuery(team);
+                        searchPlayers(team);
+                        setActiveMainTab("player-search");
+                      }}
+                      onViewSocial={() => setActiveMainTab("social")}
+                      onViewHighlights={() => setActiveMainTab("matches")}
+                      onViewBracket={() => setWorldCupSubTab("bracket")}
+                      user={user}
+                      favorites={favorites}
+                      onFavoriteChanged={refreshFavorites}
+                    />
+                  ) : (
+                    <BracketBuilder user={user} />
+                  )}
+                </div>
               ) : selectedMatch ? (
                 <AnimatePresence mode="wait">
                   <motion.div

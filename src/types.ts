@@ -73,3 +73,30 @@ export interface SocialEvent {
   userPhoto?: string;
   timestamp: number;
 }
+
+export interface WCTeam {
+  id: string;
+  name: string;
+  image: string;
+  group?: string;
+  rank?: number;
+  stats?: {
+    attack: number;
+    defense: number;
+    midfield: number;
+  };
+}
+
+export interface BracketMatch {
+  id: string;
+  round: number; // 0: R16, 1: QF, 2: SF, 3: F
+  position: number;
+  homeTeamId?: string;
+  awayTeamId?: string;
+  winnerTeamId?: string;
+  simulatedResult?: {
+    homeScore: number;
+    awayScore: number;
+    summary: string;
+  };
+}

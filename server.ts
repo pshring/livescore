@@ -1186,11 +1186,13 @@ async function startServer() {
       tennisRankingsCache[type] = { data: response.data, timestamp: now };
       res.json(response.data);
     } catch (error: any) {
-      console.error(`[API] Tennis Rankings Error (${type}):`, error.message);
-      res.status(error.response?.status || 500).json({ 
-        error: error.message,
-        details: error.response?.data
-      });
+      if (error.response?.status === 429 || error.response?.status === 403) {
+        apiCooldowns[`tennis_${type}`] = now + COOLDOWN_PERIOD;
+        if (tennisRankingsCache[type]) {
+          return res.json(tennisRankingsCache[type].data);
+        }
+      }
+      res.status(500).json({ error: "Failed to fetch tennis rankings" });
     }
   });
 
@@ -1388,8 +1390,13 @@ async function startServer() {
       footballStandingsCache[cacheKey] = { data: response.data, timestamp: now };
       res.json(response.data);
     } catch (error: any) {
-      console.error(`[API] Standings Error:`, error.message);
-      res.status(error.response?.status || 500).json({ error: error.message });
+      if (error.response?.status === 429 || error.response?.status === 403) {
+        apiCooldowns[cacheKey] = now + COOLDOWN_PERIOD;
+        if (footballStandingsCache[cacheKey]) {
+          return res.json(footballStandingsCache[cacheKey].data);
+        }
+      }
+      res.status(500).json({ error: "Failed to fetch standings" });
     }
   });
 

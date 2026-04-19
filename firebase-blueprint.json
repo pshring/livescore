@@ -105,6 +105,16 @@
         "timestamp": { "type": "number" }
       },
       "required": ["id", "matchId", "userId", "userName", "text", "timestamp"]
+    },
+    "UserBracket": {
+      "title": "UserBracket",
+      "description": "A user's saved tournament bracket",
+      "type": "object",
+      "properties": {
+        "matches": { "type": "array", "items": { "type": "object" } },
+        "updatedAt": { "type": "number" }
+      },
+      "required": ["matches", "updatedAt"]
     }
   },
   "firestore": {
@@ -127,6 +137,10 @@
     "/social_events/{eventId}": {
       "schema": "SocialEvent",
       "description": "Global collection of social events and messages"
+    },
+    "/user_brackets/{userId}": {
+      "schema": "UserBracket",
+      "description": "Collection of user-specific tournament brackets"
     }
   }
 }
