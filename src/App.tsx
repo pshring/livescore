@@ -261,17 +261,20 @@ const CricketOversGraph = ({ matchId }: { matchId: string }) => {
       try {
         const res = await fetch(`/api/cricket/match/${numericId}/overs-graph`);
         if (res.ok) {
-          const result = await res.json();
-          if (result.overGraphInnings && Array.isArray(result.overGraphInnings)) {
-            const processedData = result.overGraphInnings.flatMap((inn: any) => 
-               inn.overData ? Object.entries(inn.overData).map(([over, runs]: [string, any]) => ({
-                 over: parseInt(over),
-                 runs: typeof runs === 'object' ? runs.runs : runs,
-                 wickets: typeof runs === 'object' ? runs.wickets : 0,
-                 inning: inn.inningNum
-               })) : []
-            ).sort((a: any, b: any) => a.over - b.over);
-            setData(processedData);
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const result = await res.json();
+            if (result.overGraphInnings && Array.isArray(result.overGraphInnings)) {
+              const processedData = result.overGraphInnings.flatMap((inn: any) => 
+                 inn.overData ? Object.entries(inn.overData).map(([over, runs]: [string, any]) => ({
+                   over: parseInt(over),
+                   runs: typeof runs === 'object' ? runs.runs : runs,
+                   wickets: typeof runs === 'object' ? runs.wickets : 0,
+                   inning: inn.inningNum
+                 })) : []
+              ).sort((a: any, b: any) => a.over - b.over);
+              setData(processedData);
+            }
           }
         }
       } catch (err) {
@@ -544,7 +547,15 @@ const NewsFeed = ({ category }: { category: string }) => {
   );
 };
 
-const TournamentStatistics = ({ tournamentId, seasonId }: { tournamentId: string, seasonId: string }) => {
+const TournamentStatistics = ({ 
+  tournamentId, 
+  seasonId,
+  onPlayerClick
+}: { 
+  tournamentId: string, 
+  seasonId: string,
+  onPlayerClick?: (name: string) => void
+}) => {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [isRestricted, setIsRestricted] = useState(false);
@@ -634,7 +645,12 @@ const TournamentStatistics = ({ tournamentId, seasonId }: { tournamentId: string
                   <div className="flex items-center gap-4">
                     <span className="text-xl font-black text-slate-200 font-display italic">#0{i + 1}</span>
                     <div className="space-y-0.5">
-                      <div className="text-sm font-bold text-slate-900">{player.player.name}</div>
+                      <div 
+                        onClick={() => onPlayerClick?.(player.player.name)}
+                        className="text-sm font-bold text-slate-900 cursor-pointer hover:text-brand transition-colors"
+                      >
+                        {player.player.name}
+                      </div>
                       <div className="text-[10px] text-slate-400 font-medium">{player.team.name}</div>
                     </div>
                   </div>
@@ -652,7 +668,7 @@ const TournamentStatistics = ({ tournamentId, seasonId }: { tournamentId: string
   );
 };
 
-const TennisRankings = () => {
+const TennisRankings = ({ onPlayerClick }: { onPlayerClick?: (name: string) => void }) => {
   const [rankings, setRankings] = useState<any[]>([]);
   const [type, setType] = useState("wta"); // wta or atp
   const [loading, setLoading] = useState(false);
@@ -662,6 +678,13 @@ const TennisRankings = () => {
       setLoading(true);
       try {
         const response = await fetch(`/api/tennis/rankings/${type}`);
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+        
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+           throw new Error("Received non-JSON response from server.");
+        }
+
         const data = await response.json();
         // The API returns { rankings: [...] } based on user's curl suggestion
         if (data.rankings && Array.isArray(data.rankings)) {
@@ -671,6 +694,7 @@ const TennisRankings = () => {
         }
       } catch (error) {
         console.error("Failed to fetch tennis rankings:", error);
+        setRankings([]); // Clear on error
       } finally {
         setLoading(false);
       }
@@ -720,7 +744,7 @@ const TennisRankings = () => {
         ) : (
           rankings.slice(0, 30).map((player, i) => (
             <motion.div
-              key={player.id || i}
+              key={player.id || player.ranking || i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
@@ -750,7 +774,13 @@ const TennisRankings = () => {
 
                     <div className="space-y-2">
                       <div className="space-y-0.5">
-                        <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-rose-600 transition-colors">
+                        <h3 
+                          onClick={() => onPlayerClick?.(player.rowName || player.player?.name)}
+                          className={cn(
+                            "text-lg font-black text-slate-900 leading-tight group-hover:text-rose-600 transition-colors",
+                            onPlayerClick && "cursor-pointer hover:underline"
+                          )}
+                        >
                           {player.rowName || player.player?.name || "Unknown Player"}
                         </h3>
                         <div className="flex items-center gap-2">
@@ -787,7 +817,13 @@ const TennisRankings = () => {
   );
 };
 
-const FootballLineups = ({ matchId }: { matchId: string }) => {
+const FootballLineups = ({ 
+  matchId,
+  onPlayerClick
+}: { 
+  matchId: string,
+  onPlayerClick?: (name: string) => void
+}) => {
   const [lineups, setLineups] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -797,9 +833,14 @@ const FootballLineups = ({ matchId }: { matchId: string }) => {
       setLoading(true);
       try {
         const res = await fetch(`/api/football/match/${matchId}/lineups`);
-        const data = await res.json();
-        if (data.response && Array.isArray(data.response)) {
-          setLineups(data.response);
+        if (res.ok) {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            if (data.response && Array.isArray(data.response)) {
+              setLineups(data.response);
+            }
+          }
         }
       } catch (err) {
         console.error("Lineups component error:", err);
@@ -837,7 +878,12 @@ const FootballLineups = ({ matchId }: { matchId: string }) => {
                     <div key={player.player.id} className="py-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <span className="w-6 text-[10px] font-black text-slate-400 font-mono italic">#{player.player.number}</span>
-                        <span className="text-sm font-bold text-slate-900">{player.player.name}</span>
+                        <span 
+                          onClick={() => onPlayerClick?.(player.player.name)}
+                          className="text-sm font-bold text-slate-900 cursor-pointer hover:text-brand transition-colors"
+                        >
+                          {player.player.name}
+                        </span>
                       </div>
                       <Badge variant="outline" className="text-[8px] font-bold uppercase tracking-widest bg-slate-50 border-none">{player.player.pos}</Badge>
                     </div>
@@ -893,9 +939,14 @@ const WorldCupTeamsViewer = ({
       setLoading(true);
       try {
         const response = await fetch("/api/football/world-cup/teams");
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setTeams(data);
+        if (response.ok) {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await response.json();
+            if (Array.isArray(data)) {
+              setTeams(data);
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to fetch World Cup teams:", error);
@@ -1046,7 +1097,7 @@ const WorldCupTeamsViewer = ({
   );
 };
 
-const FootballRankings = () => {
+const FootballRankings = ({ onTeamClick }: { onTeamClick?: (leagueId: string, teamName?: string) => void }) => {
   const [standings, setStandings] = useState<any[]>([]);
   const [leagueId, setLeagueId] = useState("39"); // Default: PL
   const [loading, setLoading] = useState(false);
@@ -1154,8 +1205,8 @@ const FootballRankings = () => {
                     </tr>
                   ))
                 ) : (
-                  standings.map((team: any) => (
-                    <tr key={team.team.id} className="hover:bg-slate-50/50 transition-colors group">
+                  standings.map((team: any, idx: number) => (
+                    <tr key={team.team?.id || team.rank || idx} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4">
                         <span className={cn(
                           "w-8 h-8 flex items-center justify-center rounded-lg font-black font-display text-sm",
@@ -1165,9 +1216,15 @@ const FootballRankings = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-left">
-                        <div className="flex items-center gap-3">
+                        <div 
+                          className={cn(
+                            "flex items-center gap-3",
+                            onTeamClick && "cursor-pointer group-hover:text-emerald-600 transition-colors"
+                          )}
+                          onClick={() => onTeamClick?.(leagueId, team.team.name)}
+                        >
                           <img src={team.team.logo} alt={team.team.name} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
-                          <span className="font-bold text-slate-900">{team.team.name}</span>
+                          <span className="font-bold text-slate-900 group-hover:text-emerald-600">{team.team.name}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center font-bold text-slate-600">{team.all?.played}</td>
@@ -1190,7 +1247,7 @@ const FootballRankings = () => {
   );
 };
 
-const CricketRankings = () => {
+const CricketRankings = ({ onPlayerClick }: { onPlayerClick?: (name: string) => void }) => {
   const [rankings, setRankings] = useState<any[]>([]);
   const [type, setType] = useState("1"); // 1: Test, 2: ODI, 3: T20
   const [loading, setLoading] = useState(false);
@@ -1200,12 +1257,20 @@ const CricketRankings = () => {
       setLoading(true);
       try {
         const response = await fetch(`/api/cricket/rankings/${type}`);
+        if (!response.ok) throw new Error(`API Error: ${response.status}`);
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+           throw new Error("Received non-JSON response from server.");
+        }
+
         const data = await response.json();
         if (data.data && Array.isArray(data.data)) {
           setRankings(data.data);
         }
       } catch (error) {
-        console.error("Failed to fetch rankings:", error);
+        console.error("Failed to fetch cricket rankings:", error);
+        setRankings([]); // Clear on error
       } finally {
         setLoading(false);
       }
@@ -1248,7 +1313,7 @@ const CricketRankings = () => {
         ) : rankings.length > 0 ? (
           rankings.map((player: any, idx: number) => (
             <motion.div
-              key={idx}
+              key={player.id || player.name || idx}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
@@ -1262,8 +1327,14 @@ const CricketRankings = () => {
                   <div className="w-14 h-14 rounded-2xl bg-brand/10 flex items-center justify-center border border-brand/20 group-hover:rotate-6 transition-transform">
                     <Users className="w-7 h-7 text-brand" />
                   </div>
-                  <div>
-                    <h4 className="font-black text-slate-900 text-lg leading-tight tracking-tight">{player.player_name}</h4>
+                  <div 
+                    onClick={() => onPlayerClick?.(player.player_name)}
+                    className={cn(
+                      "cursor-pointer group-hover:translate-x-1 transition-transform",
+                      onPlayerClick && "hover:text-brand"
+                    )}
+                  >
+                    <h4 className="font-black text-slate-900 text-lg leading-tight tracking-tight group-hover:text-brand">{player.player_name}</h4>
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-1">{player.team_name}</p>
                   </div>
                 </div>
@@ -1350,17 +1421,31 @@ export default function App() {
         const today = new Date().toISOString().split('T')[0];
         const res = await fetch(`/api/football/predictions?iso_date=${today}`);
         if (res.ok) {
-          const data = await res.json();
-          if (data.allProvidersFailed) {
-            console.log("Expert Predictions API is rate-limited, restricted, or unavailable. Dashboard will rely on AI Analysis.");
-            return;
-          }
-          if (data.data && Array.isArray(data.data)) {
-            setExpertPredictions(data.data);
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            if (data.allProvidersFailed) {
+              console.log("Expert Predictions API is rate-limited, restricted, or unavailable. Dashboard will rely on AI Analysis.");
+              return;
+            }
+            if (data.data && Array.isArray(data.data)) {
+              setExpertPredictions(data.data);
+            }
+          } else {
+            console.warn("Expert Predictions API returned non-JSON response");
           }
         } else {
-          const errorData = await res.json().catch(() => ({}));
-          console.warn(`Expert Predictions API returned non-OK status (${res.status}):`, errorData.error || "Unknown Error");
+          try {
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+              const errorData = await res.json();
+              console.warn(`Expert Predictions API returned non-OK status (${res.status}):`, errorData.error || "Unknown Error");
+            } else {
+              console.warn(`Expert Predictions API returned non-OK status (${res.status}) with non-JSON body`);
+            }
+          } catch (e) {
+            console.warn(`Expert Predictions API returned non-OK status (${res.status})`);
+          }
         }
       } catch (err) {
         console.error("Network Error fetching predictions:", err instanceof Error ? err.message : err);
@@ -1644,11 +1729,22 @@ export default function App() {
         console.error("Firestore Matches Error:", error);
         // Fallback to API if Firestore fails
         fetch("/api/matches")
-          .then((res) => res.json())
+          .then((res) => {
+            if (!res.ok) throw new Error(`Matches API fetch failed: ${res.status}`);
+            const contentType = res.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) throw new Error("Matches API returned non-JSON response");
+            return res.json();
+          })
           .then((data) => {
-            setMatches(data);
-            if (data.length > 0 && !selectedMatchId) setSelectedMatchId(data[0].id);
+            if (Array.isArray(data)) {
+              setMatches(data);
+              if (data.length > 0 && !selectedMatchId) setSelectedMatchId(data[0].id);
+            }
             setLoading(false);
+          })
+          .catch((err) => {
+             console.error("Fallback API fetch failed:", err);
+             setLoading(false);
           });
       });
     } catch (error) {
@@ -1658,10 +1754,21 @@ export default function App() {
 
     // Initial fetch from API as a secondary fallback/speedup
     fetch("/api/matches")
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`Initial matches API fetch failed: ${res.status}`);
+        const contentType = res.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) throw new Error("Initial matches API returned non-JSON response");
+        return res.json();
+      })
       .then((data) => {
-        setMatches(prev => prev.length === 0 ? data : prev);
-        if (data.length > 0 && !selectedMatchId) setSelectedMatchId(data[0].id);
+        if (Array.isArray(data)) {
+          setMatches(prev => prev.length === 0 ? data : prev);
+          if (data.length > 0 && !selectedMatchId) setSelectedMatchId(data[0].id);
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Initial API speedup fetch failed:", err);
         setLoading(false);
       });
 
@@ -3549,7 +3656,10 @@ export default function App() {
 
                              <div className="flex flex-col items-center gap-4 md:gap-6 w-full lg:w-auto">
                                {selectedMatch.league && (
-                                 <div className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-slate-400">
+                                 <div 
+                                   onClick={() => setActiveMainTab("rankings")}
+                                   className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-brand cursor-pointer hover:underline"
+                                 >
                                    {selectedMatch.league}
                                  </div>
                                )}
@@ -3957,11 +4067,23 @@ export default function App() {
                       <TournamentStatistics 
                         tournamentId={selectedMatch.sport === 'football' ? "39" : "17"} 
                         seasonId={selectedMatch.sport === 'football' ? "2023" : "76986"} 
+                        onPlayerClick={(name) => {
+                          setPlayerSearchQuery(name);
+                          searchPlayers(name);
+                          setActiveMainTab("player-search");
+                        }}
                       />
                     </div>
                   </TabsContent>
                   <TabsContent value="lineups" className="mt-8 outline-none">
-                    <FootballLineups matchId={selectedMatch.id} />
+                    <FootballLineups 
+                      matchId={selectedMatch.id} 
+                      onPlayerClick={(name) => {
+                        setPlayerSearchQuery(name);
+                        searchPlayers(name);
+                        setActiveMainTab("player-search");
+                      }}
+                    />
                   </TabsContent>
                   <TabsContent value="chat" className="mt-8 outline-none">
                       <Card className="glass border-sky-100 rounded-3xl overflow-hidden flex flex-col h-[500px]">
@@ -4289,13 +4411,27 @@ export default function App() {
               </TabsList>
             </div>
             <TabsContent value="football">
-              <FootballRankings />
+              <FootballRankings onTeamClick={(leagueId, teamName) => {
+                setActiveMainTab("matches");
+                if (teamName) {
+                  setPlayerSearchQuery(teamName);
+                  searchPlayers(teamName);
+                }
+              }} />
             </TabsContent>
             <TabsContent value="cricket">
-              <CricketRankings />
+              <CricketRankings onPlayerClick={(name) => {
+                setPlayerSearchQuery(name);
+                searchPlayers(name);
+                setActiveMainTab("player-search");
+              }} />
             </TabsContent>
             <TabsContent value="tennis">
-              <TennisRankings />
+              <TennisRankings onPlayerClick={(name) => {
+                setPlayerSearchQuery(name);
+                searchPlayers(name);
+                setActiveMainTab("player-search");
+              }} />
             </TabsContent>
           </Tabs>
         </TabsContent>
@@ -4424,8 +4560,15 @@ export default function App() {
           {Array(10).fill(0).map((_, i) => (
             <div key={i} className="flex items-center gap-12 px-12">
               {matches.map(m => (
-                <div key={m.id} className="flex items-center gap-4 font-black uppercase text-xs italic tracking-tighter">
-                  <span className="text-white/60">{m.sport}</span>
+                <div 
+                  key={m.id} 
+                  onClick={() => {
+                    setActiveMainTab("matches");
+                    setSelectedMatchId(m.id);
+                  }}
+                  className="flex items-center gap-4 font-black uppercase text-xs italic tracking-tighter cursor-pointer hover:text-white/80 transition-colors group/ticker"
+                >
+                  <span className="text-white/60 group-hover/ticker:text-white">{m.sport}</span>
                   <span>{m.homeTeam}</span>
                   <span className="bg-white text-brand px-3 py-0.5 rounded-full text-[10px] not-italic">{m.homeScore} - {m.awayScore}</span>
                   <span>{m.awayTeam}</span>
