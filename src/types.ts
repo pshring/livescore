@@ -1,15 +1,16 @@
 export interface Match {
   id: string;
-  sport: "football" | "basketball" | "tennis" | "formula1" | "baseball" | "cricket";
+  sport: "football" | "basketball" | "tennis" | "formula1" | "baseball" | "cricket" | "hockey";
   homeTeam: string;
   awayTeam: string;
-  homeScore: number;
-  awayScore: number;
+  homeScore: number | string;
+  awayScore: number | string;
   homeScoreDetail?: string;
   awayScoreDetail?: string;
   league?: string;
   status: "live" | "scheduled" | "finished";
   time: string;
+  timestamp?: number; // Unix timestamp in milliseconds
   events: MatchEvent[];
   prediction?: string;
   finishedAt?: number;
