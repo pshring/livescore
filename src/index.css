@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -6,6 +6,7 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Space Grotesk", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
   
   --color-brand: #0ea5e9; /* sky-500 */
   --color-brand-muted: rgba(14, 165, 233, 0.1);
@@ -53,9 +54,101 @@
     animation: marquee 30s linear infinite;
   }
 
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  .animate-neural-dash {
+    animation: neural-dash 1.5s infinite linear;
+  }
+
+  .animate-spectrum-wave {
+    animation: spectrum-wave 1s infinite ease-in-out;
+  }
+
+  .animate-scanline-sweep {
+    animation: scanline-sweep 8s infinite linear;
+  }
+
+  .neural-noise {
+    position: relative;
+  }
+
+  .neural-noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 99;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+
+  .hologram-flare {
+    background: radial-gradient(circle at center, rgba(14, 165, 233, 0.15) 0%, transparent 70%);
+    filter: blur(40px);
+  }
+
+  .tactical-cursor {
+    cursor: crosshair;
+  }
+
+  @keyframes neural-dash {
+    to { stroke-dashoffset: -40; }
+  }
+
+  @keyframes spectrum-wave {
+    0%, 100% { height: 2px; }
+    50% { height: 16px; }
+  }
+
+  @keyframes scanline-sweep {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(100vh); }
+  }
+
+  .mask-fade-right {
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+
+  .scanline {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to bottom,
+      transparent 50%,
+      rgba(0, 0, 0, 0.02) 50%
+    );
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.3;
+  }
+
+  .grid-bg {
+    background-image: radial-gradient(circle at center, #cbd5e1 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.15;
+  }
+
   @keyframes marquee {
     0% { transform: translateX(0); }
     100% { transform: translateX(-50%); }
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
   }
 }
 

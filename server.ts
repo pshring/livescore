@@ -719,43 +719,177 @@ async function fetchTennisMatches() {
   return uniqueMatches;
 }
 
+async function fetchBasketballMatches() {
+  const sources = [
+    // Source 1: SportAPI7
+    (async () => {
+      const HOST = "sportapi7.p.rapidapi.com";
+      const cacheKey = "basketball_sportapi";
+      const now = Date.now();
+      if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) return sportsCache[cacheKey]?.data || [];
+      if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) return sportsCache[cacheKey].data;
+      try {
+        const response = await axios.get("https://sportapi7.p.rapidapi.com/api/v1/sport/basketball/events/live", {
+          headers: { "x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": HOST },
+          timeout: 8000
+        });
+        const events = response.data.events;
+        if (!Array.isArray(events)) return [];
+        const matches: Match[] = events.map((e: any) => ({
+          id: `real-sa-bk-${e.id}`,
+          sport: "basketball",
+          homeTeam: e.homeTeam.name,
+          awayTeam: e.awayTeam.name,
+          homeScore: e.homeScore.current ?? 0,
+          awayScore: e.awayScore.current ?? 0,
+          league: e.tournament?.name || "Basketball League",
+          status: "live",
+          time: e.status.description || "Live",
+          timestamp: e.startTimestamp ? e.startTimestamp * 1000 : undefined,
+          events: []
+        }));
+        sportsCache[cacheKey] = { data: matches, timestamp: now };
+        return matches;
+      } catch (e) {
+        return sportsCache[cacheKey]?.data || [];
+      }
+    })(),
+    // Source 2: API-Basketball
+    (async () => {
+      const HOST = "api-basketball.p.rapidapi.com";
+      const cacheKey = "basketball_apibasketball";
+      const now = Date.now();
+      if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) return sportsCache[cacheKey]?.data || [];
+      if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) return sportsCache[cacheKey].data;
+      try {
+        const response = await axios.get("https://api-basketball.p.rapidapi.com/games", {
+          params: { live: "all" },
+          headers: { "x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": HOST },
+          timeout: 8000
+        });
+        const games = response.data.response;
+        if (!Array.isArray(games)) return [];
+        const matches: Match[] = games.map((g: any) => ({
+          id: `real-ab-bk-${g.id}`,
+          sport: "basketball",
+          homeTeam: g.teams.home.name,
+          awayTeam: g.teams.away.name,
+          homeScore: g.scores.home.total ?? 0,
+          awayScore: g.scores.away.total ?? 0,
+          league: g.league.name || "Basketball",
+          status: "live",
+          time: g.status.long || "Live",
+          timestamp: g.timestamp ? g.timestamp * 1000 : undefined,
+          events: []
+        }));
+        sportsCache[cacheKey] = { data: matches, timestamp: now };
+        return matches;
+      } catch (e) {
+        return sportsCache[cacheKey]?.data || [];
+      }
+    })()
+  ];
+
+  const results = await Promise.all(sources);
+  const combined = results.flat();
+  const uniqueMatches: Match[] = [];
+  const seen = new Set<string>();
+
+  combined.forEach(m => {
+    const key = `${m.homeTeam}-${m.awayTeam}`.toLowerCase();
+    if (!seen.has(key)) {
+      uniqueMatches.push(m);
+      seen.add(key);
+    }
+  });
+
+  return uniqueMatches;
+}
+
 async function fetchHockeyMatches() {
-  const HOST = "sportapi7.p.rapidapi.com";
-  const cacheKey = "hockey_sportapi";
-  const now = Date.now();
+  const sources = [
+    // Source 1: SportAPI7
+    (async () => {
+      const HOST = "sportapi7.p.rapidapi.com";
+      const cacheKey = "hockey_sportapi";
+      const now = Date.now();
+      if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) return sportsCache[cacheKey]?.data || [];
+      if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) return sportsCache[cacheKey].data;
+      try {
+        const response = await axios.get("https://sportapi7.p.rapidapi.com/api/v1/sport/ice-hockey/events/live", {
+          headers: { "x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": HOST },
+          timeout: 8000
+        });
+        const events = response.data.events;
+        if (!Array.isArray(events)) return [];
+        const matches: Match[] = events.map((e: any) => ({
+          id: `real-sa-hk-${e.id}`,
+          sport: "hockey",
+          homeTeam: e.homeTeam.name,
+          awayTeam: e.awayTeam.name,
+          homeScore: e.homeScore.current ?? 0,
+          awayScore: e.awayScore.current ?? 0,
+          league: e.tournament?.name || "NHL",
+          status: "live",
+          time: e.status.description || "Live",
+          timestamp: e.startTimestamp ? e.startTimestamp * 1000 : undefined,
+          events: []
+        }));
+        sportsCache[cacheKey] = { data: matches, timestamp: now };
+        return matches;
+      } catch (e) {
+        return sportsCache[cacheKey]?.data || [];
+      }
+    })(),
+    // Source 2: AllSportsAPI2
+    (async () => {
+      const HOST = "allsportsapi2.p.rapidapi.com";
+      const cacheKey = "hockey_allsports";
+      const now = Date.now();
+      if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) return sportsCache[cacheKey]?.data || [];
+      if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) return sportsCache[cacheKey].data;
+      try {
+        const response = await axios.get("https://allsportsapi2.p.rapidapi.com/api/hockey/events/live", {
+          headers: { "x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": HOST },
+          timeout: 8000
+        });
+        const events = response.data.events;
+        if (!Array.isArray(events)) return [];
+        const matches: Match[] = events.map((e: any) => ({
+          id: `real-as-hk-${e.id}`,
+          sport: "hockey",
+          homeTeam: e.homeTeam.name,
+          awayTeam: e.awayTeam.name,
+          homeScore: e.homeScore.current ?? 0,
+          awayScore: e.awayScore.current ?? 0,
+          league: e.tournament?.name || "Hockey",
+          status: "live",
+          time: e.status.description || "Live",
+          timestamp: e.startTimestamp ? e.startTimestamp * 1000 : undefined,
+          events: []
+        }));
+        sportsCache[cacheKey] = { data: matches, timestamp: now };
+        return matches;
+      } catch (e) {
+        return sportsCache[cacheKey]?.data || [];
+      }
+    })()
+  ];
 
-  if (apiCooldowns[cacheKey] && now < apiCooldowns[cacheKey]) return sportsCache[cacheKey]?.data || [];
-  if (sportsCache[cacheKey] && (now - sportsCache[cacheKey].timestamp < CACHE_TTL)) return sportsCache[cacheKey].data;
+  const results = await Promise.all(sources);
+  const combined = results.flat();
+  const uniqueMatches: Match[] = [];
+  const seen = new Set<string>();
 
-  try {
-    const response = await axios.get("https://sportapi7.p.rapidapi.com/api/v1/sport/ice-hockey/events/live", {
-      headers: { "x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": HOST },
-      timeout: 8000
-    });
+  combined.forEach(m => {
+    const key = `${m.homeTeam}-${m.awayTeam}`.toLowerCase();
+    if (!seen.has(key)) {
+      uniqueMatches.push(m);
+      seen.add(key);
+    }
+  });
 
-    const events = response.data.events;
-    if (!Array.isArray(events)) return [];
-
-    const hockeyMatches: Match[] = events.map((e: any) => ({
-      id: `real-sa-hk-${e.id}`,
-      sport: "hockey" as const,
-      homeTeam: e.homeTeam.name,
-      awayTeam: e.awayTeam.name,
-      homeScore: e.homeScore.current ?? 0,
-      awayScore: e.awayScore.current ?? 0,
-      league: e.tournament?.name || "NHL",
-      status: "live" as const,
-      time: e.status.description || "Live",
-      timestamp: e.startTimestamp ? e.startTimestamp * 1000 : undefined,
-      events: []
-    })) as Match[];
-
-    sportsCache[cacheKey] = { data: hockeyMatches, timestamp: now };
-    return hockeyMatches;
-  } catch (error: any) {
-    if (error.response?.status === 429) apiCooldowns[cacheKey] = now + COOLDOWN_PERIOD;
-    return sportsCache[cacheKey]?.data || [];
-  }
+  return uniqueMatches;
 }
 
 async function fetchFreeApiLiveFootballMatches() {
@@ -799,7 +933,7 @@ async function fetchFreeApiLiveFootballMatches() {
 }
 
 async function fetchRealWorldMatches() {
-  const [baseballMatches, cricketMatches, footballMatches1, footballMatches2, hockeyMatches, openLigaMatches, tennisMatches] = await Promise.all([
+  const [baseballMatches, cricketMatches, footballMatches1, footballMatches2, hockeyMatches, basketballMatches, openLigaMatches, tennisMatches] = await Promise.all([
     fetchBaseballMatches(),
     fetchCricketMatches(),
     (async () => {
@@ -833,6 +967,7 @@ async function fetchRealWorldMatches() {
     })(),
     fetchFreeApiLiveFootballMatches(),
     fetchHockeyMatches(),
+    fetchBasketballMatches(),
     fetchOpenLigaMatches(),
     fetchTennisMatches()
   ]);
@@ -843,6 +978,7 @@ async function fetchRealWorldMatches() {
     ...(footballMatches1 || []),
     ...(footballMatches2 || []),
     ...(hockeyMatches || []),
+    ...(basketballMatches || []),
     ...(openLigaMatches || []),
     ...(tennisMatches || [])
   ];
@@ -1478,6 +1614,71 @@ async function startServer() {
   }
 
   // Football Lineups API
+  const basketballStandingsCache: Record<string, { data: any, timestamp: number }> = {};
+  const HOCKEY_STANDINGS_TTL = 3600000; // 1 hour
+
+  app.get("/api/basketball/standings/:leagueId", async (req, res) => {
+    const { leagueId } = req.params;
+    const season = req.query.season || "2023-2024";
+    const cacheKey = `${leagueId}_${season}`;
+    const now = Date.now();
+
+    if (basketballStandingsCache[cacheKey] && (now - basketballStandingsCache[cacheKey].timestamp < HOCKEY_STANDINGS_TTL)) {
+      return res.json(basketballStandingsCache[cacheKey].data);
+    }
+
+    try {
+      // Using api-basketball for standings
+      const response = await axios.get(`https://api-basketball.p.rapidapi.com/standings`, {
+        params: { league: leagueId, season: season },
+        headers: { 
+          "x-rapidapi-key": RAPIDAPI_KEY, 
+          "x-rapidapi-host": "api-basketball.p.rapidapi.com"
+        },
+        timeout: 10000
+      });
+      basketballStandingsCache[cacheKey] = { data: response.data, timestamp: now };
+      res.json(response.data);
+    } catch (error: any) {
+      if (error.response?.status === 403 || error.response?.status === 429) {
+        if (basketballStandingsCache[cacheKey]) return res.json(basketballStandingsCache[cacheKey].data);
+        return res.json({ response: [], restricted: true });
+      }
+      res.status(500).json({ error: "Failed to fetch basketball standings" });
+    }
+  });
+
+  const hockeyStandingsCache: Record<string, { data: any, timestamp: number }> = {};
+
+  app.get("/api/hockey/standings/:tournamentId", async (req, res) => {
+    const { tournamentId } = req.params;
+    const seasonId = req.query.seasonId || "55331"; // Default to NHL 23/24
+    const cacheKey = `${tournamentId}_${seasonId}`;
+    const now = Date.now();
+
+    if (hockeyStandingsCache[cacheKey] && (now - hockeyStandingsCache[cacheKey].timestamp < HOCKEY_STANDINGS_TTL)) {
+      return res.json(hockeyStandingsCache[cacheKey].data);
+    }
+
+    try {
+      const response = await axios.get(`https://allsportsapi2.p.rapidapi.com/api/tournament/${tournamentId}/season/${seasonId}/standings/total`, {
+        headers: { 
+          "x-rapidapi-key": RAPIDAPI_KEY, 
+          "x-rapidapi-host": "allsportsapi2.p.rapidapi.com"
+        },
+        timeout: 10000
+      });
+      hockeyStandingsCache[cacheKey] = { data: response.data, timestamp: now };
+      res.json(response.data);
+    } catch (error: any) {
+      if (error.response?.status === 403 || error.response?.status === 429) {
+        if (hockeyStandingsCache[cacheKey]) return res.json(hockeyStandingsCache[cacheKey].data);
+        return res.json({ standings: [], restricted: true });
+      }
+      res.status(500).json({ error: "Failed to fetch hockey standings" });
+    }
+  });
+
   app.get("/api/football/match/:id/lineups", async (req, res) => {
     const { id } = req.params;
     const numericId = id.replace("real-", "");

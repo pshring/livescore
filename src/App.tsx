@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Clock, Activity, MessageSquare, Zap, ChevronRight, ChevronDown, ChevronLeft, LogIn, LogOut, User, Heart, Send, Bell, BellOff, Settings, Share2, TrendingUp, Users, Award, Search, Menu, X } from "lucide-react";
+import { Trophy, Clock, Activity, MessageSquare, Zap, ChevronRight, ChevronDown, ChevronLeft, LogIn, LogOut, User, Heart, Send, Bell, BellOff, Settings, Share2, TrendingUp, Users, Award, Search, Menu, X, ShieldCheck, Globe, Compass, Radio, LayoutGrid } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Line } from 'recharts';
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,122 @@ import { auth, db } from "./lib/firebase";
 import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, User as FirebaseUser } from "firebase/auth";
 import { collection, onSnapshot, query, doc, setDoc, getDocFromServer, orderBy, limit, addDoc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { format, formatDistanceToNow, isValid } from "date-fns";
+
+const FootballTacticalPitch = ({ match }: { match: Match }) => {
+  const formation = [
+    { pos: 'GK', top: '90%', left: '50%', color: 'bg-amber-500', name: 'Alisson' },
+    { pos: 'LB', top: '70%', left: '20%', color: 'bg-brand', name: 'Robertson' },
+    { pos: 'CB', top: '75%', left: '40%', color: 'bg-brand', name: 'Van Dijk' },
+    { pos: 'CB', top: '75%', left: '60%', color: 'bg-brand', name: 'Konate' },
+    { pos: 'RB', top: '70%', left: '80%', color: 'bg-brand', name: 'Alexander-Arnold' },
+    { pos: 'CM', top: '50%', left: '30%', color: 'bg-brand', name: 'Mac Allister' },
+    { pos: 'CDM', top: '60%', left: '50%', color: 'bg-brand', name: 'Endo' },
+    { pos: 'CM', top: '50%', left: '70%', color: 'bg-brand', name: 'Szoboszlai' },
+    { pos: 'LW', top: '25%', left: '25%', color: 'bg-brand', name: 'Diaz' },
+    { pos: 'ST', top: '20%', left: '50%', color: 'bg-brand', name: 'Nunez' },
+    { pos: 'RW', top: '25%', left: '75%', color: 'bg-brand', name: 'Salah' },
+  ];
+
+  return (
+    <div className="relative w-full aspect-[3/4.5] bg-[#0a2a1a] rounded-[2.5rem] overflow-hidden border-[6px] border-emerald-950/50 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.6)] group/pitch">
+      {/* Dynamic Grass Texture */}
+      <div className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none" 
+           style={{ backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 5%, rgba(255,255,255,0.05) 5%, rgba(255,255,255,0.05) 10%)' }} />
+      
+      {/* Tactical Grid Overlay */}
+      <div className="absolute inset-0 grid grid-cols-6 grid-rows-8 opacity-10 pointer-events-none">
+        {Array(48).fill(0).map((_, i) => (
+          <div key={i} className="border-[0.5px] border-emerald-400/30" />
+        ))}
+      </div>
+
+      {/* Pitch Markings - High Contrast */}
+      <div className="absolute inset-6 border-2 border-emerald-400/20 rounded-xl" />
+      <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-emerald-400/20" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 border-2 border-emerald-400/20 rounded-full" />
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 w-64 h-32 border-2 border-emerald-400/20 border-t-0" />
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-64 h-32 border-2 border-emerald-400/20 border-b-0" />
+      
+      {/* Kinetic Passing Lanes (Simulated) */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
+        <motion.path 
+          d="M 50% 70% L 30% 50%" 
+          stroke="url(#pass-grad)" 
+          strokeWidth="1" 
+          strokeDasharray="4 4"
+          initial={{ strokeDashoffset: 100 }}
+          animate={{ strokeDashoffset: 0 }}
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+        />
+        <defs>
+          <linearGradient id="pass-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="transparent" />
+            <stop offset="50%" stopColor="#10b981" />
+            <stop offset="100%" stopColor="transparent" />
+          </linearGradient>
+        </defs>
+      </svg>
+
+      {/* Players */}
+      {formation.map((p, i) => (
+        <motion.div
+          key={i}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: i * 0.03 + 0.5, type: 'spring', damping: 15 }}
+          className="absolute -translate-x-1/2 -translate-y-1/2 z-10 group/player"
+          style={{ top: p.top, left: p.left }}
+        >
+          {/* Proximity Glow */}
+          <div className="absolute -inset-4 bg-emerald-400/0 group-hover/player:bg-emerald-400/10 rounded-full transition-all duration-500 blur-xl" />
+          
+          <div className={cn(
+            "w-9 h-9 md:w-12 md:h-12 rounded-2xl flex items-center justify-center text-[10px] md:text-xs font-black text-white shadow-2xl border border-white/20 transition-all duration-500 group-hover/player:scale-125 group-hover/player:-translate-y-2 group-hover/player:shadow-emerald-500/40 cursor-pointer relative z-20 overflow-hidden",
+            p.color
+          )}>
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent group-hover/player:opacity-0 transition-opacity" />
+            {p.pos}
+          </div>
+          
+          {/* Tactical Label */}
+          <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-0.5 opacity-0 group-hover/player:opacity-100 transition-all duration-300 translate-y-2 group-hover/player:translate-y-0 pointer-events-none">
+            <span className="bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[9px] font-black text-white uppercase tracking-tighter border border-white/10 shadow-2xl">
+              {p.name}
+            </span>
+            <div className="flex gap-0.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/30" />
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/30" />
+            </div>
+          </div>
+        </motion.div>
+      ))}
+
+      {/* Top Telemetry Header */}
+      <div className="absolute top-10 inset-x-10 flex items-start justify-between z-20 pointer-events-none">
+        <div className="space-y-1">
+          <Badge className="bg-emerald-950/90 backdrop-blur-2xl border-emerald-500/50 text-emerald-400 text-[10px] font-mono font-black tracking-[0.2em] uppercase px-4 py-1.5 shadow-2xl">
+            TACTICAL_OVERLAY_v4
+          </Badge>
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-[8px] font-mono text-emerald-400/60 uppercase tracking-widest">Link: Stable_60fps</span>
+          </div>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[14px] font-mono font-black text-white uppercase tracking-tighter bg-black/40 backdrop-blur-md px-3 py-1 rounded-lg border border-white/5 shadow-2xl">
+            4-3-3_ATTACK
+          </span>
+          <span className="text-[8px] font-mono text-emerald-400/40 uppercase tracking-[0.3em]">Phase: Offensive_Transition</span>
+        </div>
+      </div>
+
+      {/* Heat Zone Indicators (Purely Visual) */}
+      <div className="absolute top-[20%] left-[20%] w-32 h-32 bg-emerald-400/5 blur-[40px] rounded-full animate-pulse" />
+      <div className="absolute bottom-[25%] right-[15%] w-40 h-40 bg-emerald-400/10 blur-[50px] rounded-full animate-pulse" />
+    </div>
+  );
+};
 
 const MatchTimeDisplay = ({ match }: { match: Match }) => {
   const [now, setNow] = useState(new Date());
@@ -1006,67 +1122,83 @@ const WorldCupTeamsViewer = ({
         {teams.map((team, i) => (
           <motion.div
             key={team.id || i}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.02 }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.03, ease: "easeOut" }}
           >
-            <Card className="glass border-sky-100 rounded-[2rem] overflow-hidden hover:border-brand/40 transition-all duration-500 group relative">
-              <CardContent className="p-8 flex flex-col items-center gap-6 text-center h-full">
-                <div className="w-24 h-16 bg-slate-50 rounded-2xl overflow-hidden border border-slate-100 flex items-center justify-center relative shadow-inner group-hover:scale-110 transition-transform duration-700">
-                  <button 
-                    className="absolute top-2 right-2 z-10 p-1.5 rounded-full bg-white/80 backdrop-blur-sm hover:bg-white transition-all shadow-sm"
-                    onClick={async () => {
-                      if (!user) return;
-                      await toggleFavorite(user, team.id, favorites.includes(team.id));
-                      onFavoriteChanged();
-                    }}
-                  >
-                    <Heart className={cn("w-3 h-3 transition-colors", favorites.includes(team.id) ? "fill-red-500 text-red-500" : "text-slate-400")} />
-                  </button>
-                  {team.image ? (
-                     <img 
-                        src={team.image} 
-                        alt={team.team} 
-                        className="w-full h-full object-cover" 
-                        referrerPolicy="no-referrer" 
-                        onError={(e: any) => {
-                          e.target.style.display = 'none';
-                          e.target.nextSibling.style.display = 'block';
-                        }}
-                     />
-                  ) : null}
-                  <Trophy className={cn("w-10 h-10 text-slate-200", team.image ? "hidden" : "block")} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                </div>
-                
-                <div className="space-y-1">
-                  <h3 className="text-xl font-black uppercase tracking-tighter text-slate-900 font-display">{team.team || team.name}</h3>
-                  <div className="flex items-center justify-center gap-2">
-                    <Badge className="bg-slate-100 text-slate-500 hover:bg-slate-100 text-[8px] font-bold uppercase tracking-widest">{team.group || "Qualifier"}</Badge>
-                    <span className="text-[10px] text-slate-300 font-bold">•</span>
-                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Rank #--</span>
+            <Card className="bg-[#0f172a] border-slate-800 rounded-[2.5rem] overflow-hidden hover:border-brand/50 transition-all duration-700 group relative shadow-2xl h-full flex flex-col">
+              {/* Cinematic Background Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+              
+              <CardContent className="p-0 flex flex-col h-full relative z-10">
+                {/* Nation Header Card */}
+                <div className="p-8 pb-4 flex flex-col items-center gap-6 text-center">
+                  <div className="relative group/emblem">
+                    <div className="absolute -inset-4 bg-brand/30 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700" />
+                    <div className="w-32 h-20 bg-slate-900 rounded-[1.5rem] overflow-hidden border border-slate-800 flex items-center justify-center relative shadow-2xl group-hover/emblem:scale-110 group-hover/emblem:-rotate-3 transition-all duration-500">
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                      {team.image ? (
+                         <img 
+                            src={team.image} 
+                            alt={team.team} 
+                            className="w-full h-full object-cover" 
+                            referrerPolicy="no-referrer" 
+                          />
+                      ) : (
+                        <Globe className="w-10 h-10 text-slate-700" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h3 className="text-2xl font-display font-black text-white uppercase tracking-tighter group-hover:text-brand transition-colors">
+                      {team.team || team.name}
+                    </h3>
+                    <div className="flex items-center justify-center gap-2">
+                       <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Group {team.group || 'A'}</span>
+                       <div className="w-1 h-1 rounded-full bg-slate-700" />
+                       <span className="text-[10px] font-mono text-brand font-black uppercase">Rank #{Math.floor(Math.random() * 20) + 1}</span>
+                    </div>
                   </div>
                 </div>
 
-                <button 
-                  onClick={() => onViewBracket()}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl bg-brand text-white shadow-lg shadow-brand/20 hover:shadow-brand/30 hover:scale-[1.02] transition-all text-[9px] font-black uppercase tracking-widest"
-                >
-                  <Trophy className="w-3.5 h-3.5" /> Start Predictions
-                </button>
+                {/* Tactical Power Nodes */}
+                <div className="px-8 py-6 grid grid-cols-3 gap-2 border-y border-white/5 bg-black/20">
+                   {[
+                     { label: 'ATT', val: 88, color: 'bg-red-500' },
+                     { label: 'MID', val: 92, color: 'bg-emerald-500' },
+                     { label: 'DEF', val: 84, color: 'bg-brand' },
+                   ].map((node, j) => (
+                     <div key={j} className="flex flex-col items-center gap-2">
+                        <div className="text-[8px] font-mono text-slate-500 uppercase font-black">{node.label}</div>
+                        <div className="relative w-full aspect-square rounded-xl bg-slate-900 border border-white/5 flex items-center justify-center overflow-hidden group/node">
+                           <div className={cn("absolute inset-0 opacity-10 blur-md", node.color)} />
+                           <span className="text-xs font-black text-white relative z-10">{node.val}</span>
+                           <div className="absolute bottom-0 inset-x-0 h-0.5 bg-slate-800">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${node.val}%` }}
+                                className={cn("h-full", node.color)} 
+                              />
+                           </div>
+                        </div>
+                     </div>
+                   ))}
+                </div>
 
-                <div className="grid grid-cols-2 gap-3 w-full">
+                {/* Call to Actions - mt-auto ensures they stay at bottom */}
+                <div className="p-6 bg-slate-900/50 backdrop-blur-md flex gap-3 mt-auto">
                   <button 
                     onClick={() => onSearchSquad(team.team || team.name)}
-                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition-all text-[8px] font-black uppercase tracking-widest text-slate-600"
+                    className="flex-1 py-3 bg-brand text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-brand/20 active:scale-95 transition-all hover:bg-brand/90"
                   >
-                    <Users className="w-3 h-3 text-brand" /> Squad
+                    NATION_SQUAD
                   </button>
                   <button 
                     onClick={() => getTacticalAnalysis(team.team || team.name)}
-                    className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition-all text-[8px] font-black uppercase tracking-widest text-slate-600"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all hover:border-brand/40"
                   >
-                    <Activity className="w-3 h-3 text-emerald-500" /> Tactics
+                    <Search className="w-5 h-5" />
                   </button>
                 </div>
 
@@ -1074,21 +1206,43 @@ const WorldCupTeamsViewer = ({
                   <motion.div 
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
-                    className="w-full pt-4 border-t border-dashed border-slate-100 mt-2"
+                    className="absolute inset-x-0 bottom-0 z-20 bg-[#0f172a] border-t border-brand/20 p-6 shadow-[0_-20px_40px_rgba(0,0,0,0.5)]"
                   >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[10px] font-black text-brand uppercase tracking-widest">Tactical Analysis</span>
+                      <button onClick={() => setTacticalTeam(null)} className="text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
+                    </div>
                     {analyzing ? (
-                      <div className="flex items-center justify-center gap-2 py-2">
-                        <Zap className="w-3 h-3 text-brand animate-pulse" />
-                        <span className="text-[8px] font-bold uppercase tracking-widest text-brand animate-pulse text-glow">Analyzing Bio...</span>
+                      <div className="space-y-2">
+                        <Skeleton className="h-2 w-full bg-slate-800" />
+                        <Skeleton className="h-2 w-4/5 bg-slate-800 mb-4" />
                       </div>
                     ) : (
-                      <p className="text-[10px] text-slate-500 leading-relaxed font-medium italic">
+                      <p className="text-[10px] text-slate-300 leading-relaxed font-medium italic">
                         {analysis}
                       </p>
                     )}
                   </motion.div>
                 )}
               </CardContent>
+
+              {/* Action Badge - Favorite */}
+              <button 
+                className={cn(
+                  "absolute top-6 right-6 z-20 p-2.5 rounded-full backdrop-blur-3xl border transition-all duration-300",
+                  favorites.includes(team.id) 
+                    ? "bg-red-500 text-white border-red-400 shadow-lg shadow-red-500/20" 
+                    : "bg-white/5 text-slate-400 border-white/10 hover:border-red-500/50"
+                )}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (!user) return;
+                  await toggleFavorite(user, team.id, favorites.includes(team.id));
+                  onFavoriteChanged();
+                }}
+              >
+                <Heart className={cn("w-4 h-4", favorites.includes(team.id) && "fill-current")} />
+              </button>
             </Card>
           </motion.div>
         ))}
@@ -1099,13 +1253,40 @@ const WorldCupTeamsViewer = ({
 
 const FootballRankings = ({ onTeamClick }: { onTeamClick?: (leagueId: string, teamName?: string) => void }) => {
   const [standings, setStandings] = useState<any[]>([]);
-  const [leagueId, setLeagueId] = useState("39"); // Default: PL
+  const [leagueId, setLeagueId] = useState<string | null>(null); // null means show gallery
   const [loading, setLoading] = useState(false);
+  const [filterMode, setFilterMode] = useState<"all" | "elite" | "uefa" | "heritage">("all");
   const cache = useRef<Record<string, any[]>>({});
   const lastFetchTime = useRef<Record<string, number>>({});
   const REQUEST_COOLDOWN = 60000; // 1 minute
 
+  const TOURNAMENTS_GALAXY = [
+    { id: "39", name: "Premier League", country: "England", prestige: 98, img: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?auto=format&fit=crop&q=80&w=800", color: "from-purple-600/40 to-brand/20", icon: "🦁", stats: "High_Intensity", fed: "UEFA", heritage: ["Manchester City", "Arsenal", "Manchester United"] },
+    { id: "140", name: "La Liga", country: "Spain", prestige: 95, img: "https://images.unsplash.com/photo-1543351611-58f69d7c1781?auto=format&fit=crop&q=80&w=800", color: "from-amber-500/40 to-red-500/20", icon: "⚖️", stats: "Tactical_Focus", fed: "UEFA", heritage: ["Real Madrid", "Barcelona", "Atletico Madrid"] },
+    { id: "78", name: "Bundesliga", country: "Germany", prestige: 92, img: "https://images.unsplash.com/photo-1431324155629-1a6eda1eed2d?auto=format&fit=crop&q=80&w=800", color: "from-red-600/40 to-yellow-500/20", icon: "🛡️", stats: "Goal_Machine", fed: "UEFA", heritage: ["Bayer Leverkusen", "Bayern Munich", "Dortmund"] },
+    { id: "135", name: "Serie A", country: "Italy", prestige: 90, img: "https://images.unsplash.com/photo-1551958219-acbc608c6377?auto=format&fit=crop&q=80&w=800", color: "from-blue-600/40 to-slate-500/20", icon: "🎭", stats: "Defensive_Art", fed: "UEFA", heritage: ["Inter Milan", "Napoli", "AC Milan"] },
+    { id: "61", name: "Ligue 1", country: "France", prestige: 88, img: "https://images.unsplash.com/photo-1510051646673-c39c8286a73c?auto=format&fit=crop&q=80&w=800", color: "from-sky-600/40 to-blue-900/20", icon: "🐓", stats: "Rising_Talents", fed: "UEFA", heritage: ["PSG", "Lille", "Monaco"] },
+    { id: "world-cup", name: "World Cup", country: "Global", prestige: 100, img: "https://images.unsplash.com/photo-1521412644187-c49fa356ee2a?auto=format&fit=crop&q=80&w=800", color: "from-amber-400/40 to-brand/20", icon: "🏆", stats: "Ultimate_Heritage", fed: "FIFA", heritage: ["Argentina", "France", "Germany"] }
+  ];
+
+  const filteredTournaments = TOURNAMENTS_GALAXY.filter(t => {
+    if (filterMode === "elite") return t.prestige >= 95;
+    if (filterMode === "uefa") return t.fed === "UEFA";
+    if (filterMode === "heritage") return t.id === "world-cup";
+    return true;
+  });
+
+  const PULSE_METRICS = [
+    { label: "AVG_GOALS", value: "2.84", trend: "+0.12" },
+    { label: "INTENSITY_INDEX", value: "94.2", trend: "STABLE" },
+    { label: "UPSET_RATE", value: "14%", trend: "-2%" },
+    { label: "HOME_WIN_%", value: "46.2%", trend: "+1.5%" },
+    { label: "VAR_IMPACT", value: "0.8", trend: "-0.1" }
+  ];
+
   useEffect(() => {
+    if (!leagueId || leagueId === 'world-cup') return;
+
     const fetchStandings = async () => {
       // Check cache first
       if (cache.current[leagueId] && (Date.now() - (lastFetchTime.current[leagueId] || 0) < REQUEST_COOLDOWN)) {
@@ -1129,15 +1310,12 @@ const FootballRankings = ({ onTeamClick }: { onTeamClick?: (leagueId: string, te
           }
         }
         
-        // If we reach here, it failed.
-        // If we have cached data, use it. Otherwise, set empty.
         if (cache.current[leagueId]) {
           setStandings(cache.current[leagueId]);
         } else {
           setStandings([]);
         }
       } catch (error) {
-        // Silent catch: just ensure the UI state is handled
         if (cache.current[leagueId]) {
           setStandings(cache.current[leagueId]);
         } else {
@@ -1150,32 +1328,651 @@ const FootballRankings = ({ onTeamClick }: { onTeamClick?: (leagueId: string, te
     fetchStandings();
   }, [leagueId]);
 
-  const leagues = [
-    { id: "39", name: "Premier League" },
-    { id: "140", name: "La Liga" },
-    { id: "78", name: "Bundesliga" },
-    { id: "135", name: "Serie A" },
-    { id: "61", name: "Ligue 1" }
+  if (!leagueId) {
+    return (
+      <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-20">
+        {/* Tournament Pulse Hub - Telemetry Bar */}
+        <div className="relative overflow-hidden bg-slate-950 rounded-3xl p-6 border border-white/5 shadow-2xl group/pulse">
+          <div className="absolute inset-0 bg-gradient-to-r from-brand/10 via-transparent to-brand/10 opacity-30" />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-8 md:gap-12">
+            <div className="flex items-center gap-4 border-r border-white/10 pr-8">
+              <Activity className="w-8 h-8 text-brand animate-pulse" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">PULSE_UPLINK</span>
+                <span className="text-xl font-display font-black text-white italic tracking-tighter uppercase whitespace-nowrap">Global_Metrics</span>
+              </div>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center gap-12 overflow-x-auto no-scrollbar py-2">
+              {PULSE_METRICS.map((metric, idx) => (
+                <div key={idx} className="flex flex-col gap-1 min-w-[120px]">
+                  <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">{metric.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-mono font-bold text-white tabular-nums">{metric.value}</span>
+                    <span className={cn(
+                      "text-[9px] font-black italic px-1.5 py-0.5 rounded",
+                      metric.trend.startsWith('+') ? "bg-emerald-500/20 text-emerald-400" : 
+                      metric.trend.startsWith('-') ? "bg-rose-500/20 text-rose-400" : "bg-slate-800 text-slate-400"
+                    )}>
+                      {metric.trend}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Smart Filtering Terminal */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-100/50 p-3 rounded-[2.5rem] border border-slate-200 backdrop-blur-md">
+          <div className="flex items-center gap-2 p-1 bg-white rounded-full shadow-inner border border-slate-200 w-full md:w-auto overflow-x-auto no-scrollbar">
+            {[
+              { id: "all" as const, label: "All_Tournaments", icon: <LayoutGrid className="w-3.5 h-3.5" /> },
+              { id: "elite" as const, label: "Elite_Prestige", icon: <ShieldCheck className="w-3.5 h-3.5" /> },
+              { id: "uefa" as const, label: "UEFA_Federation", icon: <Globe className="w-3.5 h-3.5" /> },
+              { id: "heritage" as const, label: "World_Heritage", icon: <Trophy className="w-3.5 h-3.5" /> }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setFilterMode(tab.id)}
+                className={cn(
+                  "flex items-center gap-2 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all duration-500 whitespace-nowrap",
+                  filterMode === tab.id 
+                    ? "bg-slate-900 text-white shadow-lg shadow-slate-900/20" 
+                    : "text-slate-500 hover:bg-slate-100"
+                )}
+              >
+                {tab.icon}
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-4 pr-6">
+            <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest">GALAXY_DENSITY:</span>
+            <span className="text-sm font-mono font-bold text-slate-900">{filteredTournaments.length}_NODES</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <AnimatePresence mode="popLayout">
+            {filteredTournaments.map((t, i) => (
+              <motion.div
+                key={t.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -30 }}
+                transition={{ duration: 0.6, ease: "circOut" }}
+                className="group cursor-pointer"
+                onClick={() => {
+                  if (t.id === 'world-cup') {
+                    window.dispatchEvent(new CustomEvent('nav-world-cup'));
+                  } else {
+                    setLeagueId(t.id);
+                  }
+                }}
+              >
+                <Card className="relative h-[480px] rounded-[3.5rem] overflow-hidden border-slate-200/50 hover:border-brand/50 transition-all duration-700 shadow-2xl hover:shadow-brand/20 group/card bg-slate-900">
+                  {/* Cinematic Background Image */}
+                  <div className="absolute inset-0 z-0">
+                    <img 
+                      src={t.img} 
+                      alt={t.name} 
+                      className="w-full h-full object-cover transition-transform duration-1000 group-hover/card:scale-110 opacity-70 group-hover/card:opacity-100" 
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className={cn("absolute inset-0 bg-gradient-to-t via-slate-950/80 to-transparent mix-blend-multiply", t.color)} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                  </div>
+
+                  {/* Prestige telemetry HUD */}
+                  <div className="absolute top-8 left-8 right-8 flex justify-between items-start z-10">
+                    <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col gap-1">
+                      <span className="text-[8px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">PRESTIGE_INDEX</span>
+                      <div className="flex items-center gap-2">
+                         <span className="text-xl font-mono font-bold text-white tabular-nums tracking-tighter">{t.prestige}/100</span>
+                      </div>
+                    </div>
+                    <div className="w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center text-2xl group-hover/card:rotate-12 transition-transform shadow-2xl">
+                      {t.icon}
+                    </div>
+                  </div>
+
+                  <div className="absolute bottom-10 left-10 right-10 z-10 space-y-6">
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-mono font-black text-brand uppercase tracking-[0.4em] glow-text">{t.country}</span>
+                      <h3 className="text-4xl font-display font-black text-white uppercase tracking-tighter leading-[0.9] group-hover/card:translate-x-2 transition-transform duration-500">
+                        {t.name.split(' ').map((word, i) => (
+                          <span key={i} className={i === 0 ? "text-white" : "text-brand"}>
+                            {word} {i === 0 && <br />}
+                          </span>
+                        ))}
+                      </h3>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest leading-none mb-1">TACTICAL_BIAS</span>
+                        <div className="flex items-center gap-2">
+                           <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                           <span className="text-xs font-black text-white uppercase tracking-tighter italic">{t.stats}</span>
+                        </div>
+                      </div>
+                      <button className="bg-white text-slate-950 h-14 w-14 rounded-3xl flex items-center justify-center shadow-2xl shadow-brand/40 transition-all duration-500 group-hover/card:bg-brand group-hover/card:text-white group-hover/card:w-28 group-hover/card:gap-3 group">
+                         <span className="hidden group-hover/card:block text-[10px] font-black uppercase tracking-widest">Connect</span>
+                         <ChevronRight className="w-6 h-6 transition-transform group-hover/card:translate-x-1" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scanline / Grain Overlay */}
+                  <div className="absolute inset-0 opacity-10 pointer-events-none neural-noise" />
+                </Card>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
+      </div>
+    );
+  }
+
+  const currentLeague = TOURNAMENTS_GALAXY.find(t => t.id === leagueId);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+           <button 
+             onClick={() => setLeagueId(null)}
+             className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-white hover:bg-brand transition-all shadow-xl"
+           >
+             <ChevronLeft className="w-6 h-6" />
+           </button>
+           <div className="space-y-1">
+             <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">
+               {currentLeague?.name} <span className="text-brand">Standings</span>
+             </h2>
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">{currentLeague?.country} • Official_Table_v4.2</p>
+           </div>
+        </div>
+        
+        <div className="hidden lg:flex items-center gap-10 bg-slate-950/5 p-6 rounded-[2.5rem] border border-slate-200/50 backdrop-blur-xl">
+           <div className="flex flex-col">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black leading-none mb-2">Sync_Status</span>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xl font-mono font-bold text-slate-900 tracking-tighter">Live_Uplink</span>
+              </div>
+           </div>
+           <div className="w-px h-10 bg-slate-200" />
+           <div className="flex flex-col">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black leading-none mb-2">Competition_Prestige</span>
+              <span className="text-xl font-mono font-bold text-brand tracking-tighter">{currentLeague?.prestige}%_Rating</span>
+           </div>
+        </div>
+      </div>
+
+      {/* Champions Heritage Row */}
+      <div className="bg-slate-950 rounded-[2.5rem] p-8 border border-white/5 relative overflow-hidden group/heritage">
+        <div className="absolute inset-0 bg-gradient-to-r from-brand/10 via-transparent to-transparent opacity-50" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+          <div className="flex flex-col gap-2 border-r border-white/10 pr-12 min-w-[200px]">
+             <Trophy className="w-8 h-8 text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
+             <div className="flex flex-col">
+               <span className="text-[10px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">HERITAGE_ARCHIVE</span>
+               <span className="text-xl font-display font-black text-white italic tracking-tighter uppercase whitespace-nowrap">Recent_Winners</span>
+             </div>
+          </div>
+
+          <div className="flex-1 flex flex-wrap items-center gap-6">
+            {currentLeague?.heritage?.map((champion, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.15 }}
+                className="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 px-6 py-3 rounded-2xl group/champ hover:bg-brand/20 hover:border-brand transition-all cursor-default"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-400 group-hover/champ:text-white group-hover/champ:bg-brand transition-all">
+                  {idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉"}
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-mono font-black text-brand uppercase tracking-widest leading-none mb-1">
+                    {idx === 0 ? "Reign_Prev" : "Consid_Elite"}
+                  </span>
+                  <span className="text-sm font-black text-white whitespace-nowrap">{champion}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+          
+          <div className="hidden xl:flex flex-col items-end gap-1 px-8 opacity-40">
+             <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest text-right">METRIC_STABILITY</span>
+             <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className={cn("w-1 h-3 rounded-full", i < 4 ? "bg-brand" : "bg-slate-700")} />
+                ))}
+             </div>
+          </div>
+        </div>
+      </div>
+
+      <Card className="glass border-slate-100 rounded-[3rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-950 text-white">
+                  <th className="px-8 py-6 text-left text-[11px] font-black uppercase tracking-[0.3em]">Position</th>
+                  <th className="px-8 py-6 text-left text-[11px] font-black uppercase tracking-[0.3em]">Team_Entity</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">P</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">W</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">D</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">L</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">GD</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">Pts</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/50">
+                {loading ? (
+                  Array(12).fill(0).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td colSpan={8} className="px-8 py-6"><Skeleton className="h-6 w-full rounded-lg bg-slate-50" /></td>
+                    </tr>
+                  ))
+                ) : (
+                  standings.map((team: any, idx: number) => (
+                    <tr key={team.team?.id || team.rank || idx} className="hover:bg-slate-50/80 transition-all duration-300 group">
+                      <td className="px-8 py-6">
+                        <span className={cn(
+                          "w-10 h-10 flex items-center justify-center rounded-xl font-black font-display text-base transition-all",
+                          team.rank <= 4 ? "bg-emerald-500 text-white shadow-lg shadow-emerald-500/20" : "bg-slate-50 text-slate-500 group-hover:bg-slate-200"
+                        )}>
+                          {team.rank}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-left">
+                        <div 
+                          className={cn(
+                            "flex items-center gap-5",
+                            onTeamClick && "cursor-pointer group-hover:translate-x-2 transition-transform duration-500"
+                          )}
+                          onClick={() => onTeamClick?.(leagueId || "39", team.team.name)}
+                        >
+                          <div className="p-2 bg-white rounded-xl border border-slate-100 shadow-sm relative overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent" />
+                            <img src={team.team.logo} alt={team.team.name} className="w-8 h-8 object-contain relative z-10" referrerPolicy="no-referrer" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-display font-black text-slate-900 group-hover:text-brand transition-colors text-lg italic tracking-tight">{team.team.name}</span>
+                            <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">Entity_ID: {team.team.id}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-slate-600">{team.all?.played}</td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-slate-600">{team.all?.win}</td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-slate-600">{team.all?.draw}</td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-slate-600">{team.all?.lose}</td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-emerald-600">{team.goalsDiff > 0 ? `+${team.goalsDiff}` : team.goalsDiff}</td>
+                      <td className="px-8 py-6 text-center">
+                        <span className="text-2xl font-display font-black text-slate-950 tabular-nums tracking-tighter drop-shadow-sm">{team.points}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const BasketballRankings = ({ onTeamClick }: { onTeamClick?: (teamName?: string) => void }) => {
+  const [standings, setStandings] = useState<any[]>([]);
+  const [leagueId, setLeagueId] = useState<string | null>(null); // null means gallery
+  const [loading, setLoading] = useState(false);
+  const cache = useRef<Record<string, any[]>>({});
+  const lastFetchTime = useRef<Record<string, number>>({});
+  const REQUEST_COOLDOWN = 60000;
+
+  const BASKETBALL_GALAXY = [
+    { id: "12", name: "NBA", country: "USA", prestige: 100, img: "https://images.unsplash.com/photo-1546519638-68e109498ffc?auto=format&fit=crop&q=80&w=800", color: "from-blue-600/40 to-red-600/20", icon: "🏀", stats: "High_Volume_Scoring", heritage: ["Denver Nuggets", "Golden State Warriors", "Milwaukee Bucks"] },
+    { id: "2", name: "Euroleague", country: "Europe", prestige: 92, img: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&q=80&w=800", color: "from-amber-600/40 to-blue-900/20", icon: "🇪🇺", stats: "Tactical_Execution", heritage: ["Real Madrid", "Anadolu Efes", "CSKA Moscow"] },
+    { id: "117", name: "ACB", country: "Spain", prestige: 88, img: "https://images.unsplash.com/photo-1519760791238-0744c8034be9?auto=format&fit=crop&q=80&w=800", color: "from-red-600/40 to-orange-500/20", icon: "🇪🇸", stats: "European_Elite", heritage: ["Real Madrid", "Barcelona", "Baskonia"] }
+  ];
+
+  const HOOPS_PULSE = [
+    { label: "LEAGUE_AVG_PPG", value: "114.2", trend: "+2.4" },
+    { label: "PACE_FACTOR", value: "99.8", trend: "STABLE" },
+    { label: "EFFICIENCY_INDEX", value: "1.12", trend: "+0.04" },
+    { label: "3PT_VOLUME", value: "34.1%", trend: "+1.2%" }
+  ];
+
+  useEffect(() => {
+    if (!leagueId) return;
+
+    const fetchStandings = async () => {
+      if (cache.current[leagueId] && (Date.now() - (lastFetchTime.current[leagueId] || 0) < REQUEST_COOLDOWN)) {
+        setStandings(cache.current[leagueId]);
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/basketball/standings/${leagueId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.response && Array.isArray(data.response)) {
+            const sorted = [...data.response].sort((a, b) => (a.position || 0) - (b.position || 0));
+            setStandings(sorted);
+            cache.current[leagueId] = sorted;
+            lastFetchTime.current[leagueId] = Date.now();
+            return;
+          }
+        }
+        setStandings([]);
+      } catch (error) {
+        setStandings([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStandings();
+  }, [leagueId]);
+
+  if (!leagueId) {
+    return (
+      <div className="space-y-12 animate-in fade-in slide-in-from-bottom-8 duration-1000 pb-20">
+        {/* Hoops Pulse Hub */}
+        <div className="relative overflow-hidden bg-orange-950 rounded-3xl p-6 border border-orange-500/10 shadow-2xl group/pulse">
+          <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-transparent to-orange-500/10 opacity-30" />
+          <div className="relative z-10 flex flex-wrap items-center justify-between gap-8 md:gap-12">
+            <div className="flex items-center gap-4 border-r border-white/10 pr-8">
+              <Zap className="w-8 h-8 text-orange-400 animate-pulse" />
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono font-black text-orange-500/60 uppercase tracking-widest leading-none">COURT_FEED_v2.0</span>
+                <span className="text-xl font-display font-black text-white italic tracking-tighter uppercase whitespace-nowrap">Hardwood_Pulse</span>
+              </div>
+            </div>
+            
+            <div className="flex-1 flex items-center justify-center gap-12 overflow-x-auto no-scrollbar py-2">
+              {HOOPS_PULSE.map((metric, idx) => (
+                <div key={idx} className="flex flex-col gap-1 min-w-[120px]">
+                  <span className="text-[9px] font-mono font-black text-orange-200/40 uppercase tracking-widest whitespace-nowrap">{metric.label}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-mono font-bold text-white tabular-nums">{metric.value}</span>
+                    <span className="text-[9px] font-black italic px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400">
+                      {metric.trend}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {BASKETBALL_GALAXY.map((t, i) => (
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.6, ease: "easeOut" }}
+              className="group cursor-pointer"
+              onClick={() => setLeagueId(t.id)}
+            >
+              <Card className="relative h-[480px] rounded-[3.5rem] overflow-hidden border-orange-200/20 hover:border-orange-500/50 transition-all duration-700 shadow-2xl hover:shadow-orange-500/20 group/card bg-slate-900">
+                <div className="absolute inset-0 z-0">
+                  <img src={t.img} alt={t.name} className="w-full h-full object-cover transition-transform duration-1000 group-hover/card:scale-110 opacity-70 group-hover/card:opacity-100" referrerPolicy="no-referrer" />
+                  <div className={cn("absolute inset-0 bg-gradient-to-t via-slate-950/80 to-transparent mix-blend-multiply", t.color)} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
+                </div>
+
+                <div className="absolute top-8 left-8 right-8 flex justify-between items-start z-10">
+                  <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 flex flex-col gap-1">
+                    <span className="text-[8px] font-mono font-black text-orange-400/60 uppercase tracking-widest leading-none">COMPETITION_TIER</span>
+                    <div className="flex items-center gap-2">
+                       <span className="text-xl font-mono font-bold text-white tabular-nums tracking-tighter">{t.prestige}/100</span>
+                    </div>
+                  </div>
+                  <div className="w-12 h-12 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl flex items-center justify-center text-2xl group-hover/card:rotate-12 transition-transform shadow-2xl">
+                    {t.icon}
+                  </div>
+                </div>
+
+                <div className="absolute bottom-10 left-10 right-10 z-10 space-y-6">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono font-black text-orange-500 uppercase tracking-[0.4em]">REGIONAL_DIV: {t.country}</span>
+                    <h3 className="text-4xl font-display font-black text-white uppercase tracking-tighter leading-[0.9] group-hover/card:translate-x-2 transition-transform duration-500">
+                      {t.name}
+                    </h3>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-6 border-t border-white/10">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] font-mono font-black text-slate-400 uppercase tracking-widest leading-none mb-1">STRATEGIC_BIAS</span>
+                      <div className="flex items-center gap-2">
+                         <div className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse" />
+                         <span className="text-xs font-black text-white uppercase tracking-tighter italic">{t.stats}</span>
+                      </div>
+                    </div>
+                    <button className="bg-white text-slate-950 h-14 w-14 rounded-3xl flex items-center justify-center shadow-2xl shadow-orange-500/40 transition-all duration-500 group-hover/card:bg-orange-600 group-hover/card:text-white group-hover/card:w-28 group-hover/card:gap-3 group">
+                       <span className="hidden group-hover/card:block text-[10px] font-black uppercase tracking-widest">Connect</span>
+                       <ChevronRight className="w-6 h-6 transition-transform group-hover/card:translate-x-1" />
+                    </button>
+                  </div>
+                </div>
+                <div className="absolute inset-0 opacity-10 pointer-events-none neural-noise" />
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const currentLeague = BASKETBALL_GALAXY.find(t => t.id === leagueId);
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex items-center gap-6">
+           <button 
+             onClick={() => setLeagueId(null)}
+             className="w-12 h-12 rounded-2xl bg-orange-600 border border-orange-500 flex items-center justify-center text-white hover:bg-orange-700 transition-all shadow-xl"
+           >
+             <ChevronLeft className="w-6 h-6" />
+           </button>
+           <div className="space-y-1">
+             <h2 className="text-4xl font-black uppercase tracking-tighter text-slate-900">
+               {currentLeague?.name} <span className="text-orange-600">Standings</span>
+             </h2>
+             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">{currentLeague?.country} • Official_Table_v2.0</p>
+           </div>
+        </div>
+        
+        <div className="hidden lg:flex items-center gap-10 bg-orange-950 p-6 rounded-[2.5rem] border border-orange-500/20 backdrop-blur-xl">
+           <div className="flex flex-col text-white">
+              <span className="text-[10px] font-mono text-orange-200/40 uppercase tracking-widest font-black leading-none mb-2">Sync_Status</span>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xl font-mono font-bold tracking-tighter">Live_Telemetry</span>
+              </div>
+           </div>
+           <div className="w-px h-10 bg-orange-500/20" />
+           <div className="flex flex-col text-white">
+              <span className="text-[10px] font-mono text-orange-200/40 uppercase tracking-widest font-black leading-none mb-2">Court_Prestige</span>
+              <span className="text-xl font-mono font-bold text-orange-400 tracking-tighter">{currentLeague?.prestige}%_Rating</span>
+           </div>
+        </div>
+      </div>
+
+      {/* Champions Heritage Row */}
+      <div className="bg-orange-950 rounded-[2.5rem] p-8 border border-orange-500/10 relative overflow-hidden group/heritage">
+        <div className="absolute inset-0 bg-gradient-to-r from-orange-500/10 via-transparent to-transparent opacity-50" />
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
+          <div className="flex flex-col gap-2 border-r border-orange-500/20 pr-12 min-w-[200px]">
+             <Trophy className="w-8 h-8 text-orange-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.5)]" />
+             <div className="flex flex-col">
+               <span className="text-[10px] font-mono font-black text-orange-200/40 uppercase tracking-widest leading-none">LEGACY_DECRYPT</span>
+               <span className="text-xl font-display font-black text-white italic tracking-tighter uppercase whitespace-nowrap">Past_Titleists</span>
+             </div>
+          </div>
+
+          <div className="flex-1 flex flex-wrap items-center gap-6">
+            {currentLeague?.heritage?.map((champion, idx) => (
+              <motion.div 
+                key={idx}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.15 }}
+                className="flex items-center gap-4 bg-white/5 backdrop-blur-md border border-white/10 px-6 py-3 rounded-2xl group/champ hover:bg-orange-500/20 hover:border-orange-500 transition-all cursor-default"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-[10px] font-black text-slate-400 group-hover/champ:text-white group-hover/champ:bg-orange-500 transition-all">
+                  🏆
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-mono font-black text-orange-400 uppercase tracking-widest leading-none mb-1">
+                    Season_Prev
+                  </span>
+                  <span className="text-sm font-black text-white whitespace-nowrap">{champion}</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <Card className="glass border-orange-100 rounded-[3rem] overflow-hidden shadow-[0_40px_100px_-20px_rgba(0,0,0,0.05)]">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-orange-600 text-white">
+                  <th className="px-8 py-6 text-left text-[11px] font-black uppercase tracking-[0.3em]">Seed</th>
+                  <th className="px-8 py-6 text-left text-[11px] font-black uppercase tracking-[0.3em]">Franchise</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">W</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">L</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">Win_%</th>
+                  <th className="px-8 py-6 text-center text-[11px] font-black uppercase tracking-[0.3em]">Form</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100/50">
+                {loading ? (
+                  Array(12).fill(0).map((_, i) => (
+                    <tr key={i} className="animate-pulse">
+                      <td colSpan={6} className="px-8 py-6"><Skeleton className="h-6 w-full rounded-lg bg-orange-50" /></td>
+                    </tr>
+                  ))
+                ) : (
+                  standings.map((entity: any, idx: number) => (
+                    <tr key={idx} className="hover:bg-orange-50 transition-all duration-300 group">
+                      <td className="px-8 py-6">
+                        <span className={cn(
+                          "w-10 h-10 flex items-center justify-center rounded-xl font-black font-display text-base transition-all",
+                          (entity.position || idx + 1) <= 8 ? "bg-orange-600 text-white shadow-lg shadow-orange-500/20" : "bg-slate-50 text-slate-500 group-hover:bg-slate-200"
+                        )}>
+                          {entity.position || idx + 1}
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-left">
+                        <div 
+                          className="flex items-center gap-5 cursor-pointer group-hover:translate-x-2 transition-transform duration-500"
+                          onClick={() => onTeamClick?.(entity.team?.name)}
+                        >
+                          <img src={entity.team?.logo} className="w-10 h-10 object-contain" referrerPolicy="no-referrer" />
+                          <div className="flex flex-col">
+                            <span className="font-display font-black text-slate-900 group-hover:text-orange-600 transition-colors text-lg italic tracking-tight">{entity.team?.name}</span>
+                            <span className="text-[9px] font-mono text-slate-400 uppercase tracking-widest">{entity.group?.name || "Global_Conference"}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-slate-600">{entity.games?.win?.total || entity.wins}</td>
+                      <td className="px-8 py-6 text-center font-mono font-bold text-slate-600">{entity.games?.lose?.total || entity.loss}</td>
+                      <td className="px-8 py-6 text-center">
+                        <span className="text-xl font-display font-black text-slate-950 tabular-nums">
+                          {entity.games?.win?.percentage ? (entity.games.win.percentage * 100).toFixed(1) : (entity.win_pct || 0)}%
+                        </span>
+                      </td>
+                      <td className="px-8 py-6 text-center">
+                        <div className="flex justify-center gap-1">
+                          {(entity.form || "---").split('').map((f: string, i: number) => (
+                            <div key={i} className={cn(
+                              "w-2 h-2 rounded-full",
+                              f === 'W' ? "bg-emerald-500" : f === 'L' ? "bg-rose-500" : "bg-slate-300"
+                            )} />
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+const HockeyRankings = ({ onTeamClick }: { onTeamClick?: (teamName?: string) => void }) => {
+  const [standings, setStandings] = useState<any[]>([]);
+  const [tournamentId, setTournamentId] = useState("234"); // NHL
+  const [loading, setLoading] = useState(false);
+  const cache = useRef<Record<string, any[]>>({});
+
+  useEffect(() => {
+    const fetchStandings = async () => {
+      if (cache.current[tournamentId]) {
+        setStandings(cache.current[tournamentId]);
+        return;
+      }
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/hockey/standings/${tournamentId}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.standings?.[0]?.rows) {
+            setStandings(data.standings[0].rows);
+            cache.current[tournamentId] = data.standings[0].rows;
+          }
+        }
+      } catch (e) {} finally {
+        setLoading(false);
+      }
+    };
+    fetchStandings();
+  }, [tournamentId]);
+
+  const tournaments = [
+    { id: "234", name: "NHL" },
+    { id: "123", name: "KHL" },
+    { id: "216", name: "DEL" },
+    { id: "122", name: "SHL" }
   ];
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 text-slate-900">
       <div className="flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-1">
-          <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">League Standings</h2>
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Official Football Tables</p>
+          <h2 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Ice Hockey Tables</h2>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Hockey Standings</p>
         </div>
-        <div className="flex flex-wrap gap-2 bg-emerald-50 p-1.5 rounded-2xl border border-emerald-100">
-          {leagues.map((l) => (
+        <div className="flex flex-wrap gap-2 bg-blue-50 p-1.5 rounded-2xl border border-blue-100">
+          {tournaments.map((t) => (
             <button
-              key={l.id}
-              onClick={() => setLeagueId(l.id)}
+              key={t.id}
+              onClick={() => setTournamentId(t.id)}
               className={cn(
                 "px-4 md:px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all duration-300",
-                leagueId === l.id ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "text-emerald-400 hover:text-emerald-600 hover:bg-white"
+                tournamentId === t.id ? "bg-blue-600 text-white shadow-lg shadow-blue-200" : "text-blue-400 hover:text-blue-600 hover:bg-white"
               )}
             >
-              {l.name}
+              {t.name}
             </button>
           ))}
         </div>
@@ -1189,52 +1986,44 @@ const FootballRankings = ({ onTeamClick }: { onTeamClick?: (leagueId: string, te
                 <tr className="bg-slate-900 text-white">
                   <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest">Pos</th>
                   <th className="px-6 py-4 text-left text-[10px] font-black uppercase tracking-widest">Team</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">PL</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">GP</th>
                   <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">W</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">D</th>
                   <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">L</th>
-                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">GD</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">OTL</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">DIFF</th>
                   <th className="px-6 py-4 text-center text-[10px] font-black uppercase tracking-widest">PTS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   Array(10).fill(0).map((_, i) => (
-                    <tr key={i}>
-                      <td colSpan={8} className="px-6 py-4"><Skeleton className="h-4 w-full" /></td>
-                    </tr>
+                    <tr key={i}><td colSpan={8} className="px-6 py-4"><Skeleton className="h-4 w-full" /></td></tr>
                   ))
                 ) : (
-                  standings.map((team: any, idx: number) => (
-                    <tr key={team.team?.id || team.rank || idx} className="hover:bg-slate-50/50 transition-colors group">
+                  standings.map((row: any, idx: number) => (
+                    <tr key={row.team?.id || idx} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4">
-                        <span className={cn(
-                          "w-8 h-8 flex items-center justify-center rounded-lg font-black font-display text-sm",
-                          team.rank <= 4 ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
-                        )}>
-                          {team.rank}
+                        <span className="w-8 h-8 flex items-center justify-center rounded-lg font-black font-display text-sm bg-slate-50 text-slate-400">
+                          {row.position || idx + 1}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-left">
                         <div 
-                          className={cn(
-                            "flex items-center gap-3",
-                            onTeamClick && "cursor-pointer group-hover:text-emerald-600 transition-colors"
-                          )}
-                          onClick={() => onTeamClick?.(leagueId, team.team.name)}
+                          className="flex items-center gap-3 cursor-pointer group-hover:text-blue-600 transition-colors"
+                          onClick={() => onTeamClick?.(row.team?.name)}
                         >
-                          <img src={team.team.logo} alt={team.team.name} className="w-6 h-6 object-contain" referrerPolicy="no-referrer" />
-                          <span className="font-bold text-slate-900 group-hover:text-emerald-600">{team.team.name}</span>
+                          <div className="w-6 h-6 bg-slate-50 rounded p-1 flex items-center justify-center">
+                            <img src={`https://www.sofascore.com/api/v1/team/${row.team?.id}/image`} alt={row.team?.name} className="w-4 h-4 object-contain" referrerPolicy="no-referrer" />
+                          </div>
+                          <span className="font-bold text-slate-900 group-hover:text-blue-600">{row.team?.name}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-600">{team.all?.played}</td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-600">{team.all?.win}</td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-600">{team.all?.draw}</td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-600">{team.all?.lose}</td>
-                      <td className="px-6 py-4 text-center font-bold text-slate-600">{team.goalsDiff}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="text-lg font-black text-slate-900 tabular-nums">{team.points}</span>
-                      </td>
+                      <td className="px-6 py-4 text-center font-bold text-slate-600">{row.matches}</td>
+                      <td className="px-6 py-4 text-center font-bold text-slate-600">{row.wins}</td>
+                      <td className="px-6 py-4 text-center font-bold text-slate-600">{row.losses}</td>
+                      <td className="px-6 py-4 text-center font-bold text-slate-600">{row.overtimeLosses}</td>
+                      <td className="px-6 py-4 text-center font-bold text-slate-600">{row.scoresFor - row.scoresAgainst}</td>
+                      <td className="px-6 py-4 text-center font-black text-slate-900 tabular-nums">{row.points}</td>
                     </tr>
                   ))
                 )}
@@ -1363,6 +2152,24 @@ const CricketRankings = ({ onPlayerClick }: { onPlayerClick?: (name: string) => 
 };
 
 export default function App() {
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [hubActive, setHubActive] = useState(false);
+  
+  const handleMapMouseMove = (e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  useEffect(() => {
+    const handleNavWorldCup = () => {
+      setSelectedSport("football");
+      setSelectedLeague("World Cup");
+      setActiveMainTab("matches");
+    };
+    window.addEventListener('nav-world-cup', handleNavWorldCup);
+    return () => window.removeEventListener('nav-world-cup', handleNavWorldCup);
+  }, []);
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1383,6 +2190,7 @@ export default function App() {
   const [myPrediction, setMyPrediction] = useState("");
   const [activeTab, setActiveTab] = useState("commentary");
   const [playerSearchQuery, setPlayerSearchQuery] = useState("");
+  const [matchSearchQuery, setMatchSearchQuery] = useState("");
   const [playerSearchResults, setPlayerSearchResults] = useState<any[]>([]);
   const [activeMainTab, setActiveMainTab] = useState("matches");
   const [searchingPlayers, setSearchingPlayers] = useState(false);
@@ -1529,7 +2337,14 @@ export default function App() {
         ));
 
       const statusMatch = !status || m.status === status;
-      return sportMatch && leagueMatch && statusMatch;
+
+      // Keyword Search
+      const searchMatch = !matchSearchQuery || 
+        m.homeTeam.toLowerCase().includes(matchSearchQuery.toLowerCase()) ||
+        m.awayTeam.toLowerCase().includes(matchSearchQuery.toLowerCase()) ||
+        (m.league && m.league.toLowerCase().includes(matchSearchQuery.toLowerCase()));
+
+      return sportMatch && leagueMatch && statusMatch && searchMatch;
     });
   };
 
@@ -1641,6 +2456,14 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Global Navigation Listeners
+    const handleNavWorldCup = () => {
+      setSelectedLeague("World Cup");
+      setActiveMainTab("matches");
+      setWorldCupSubTab("hub");
+    };
+    window.addEventListener('nav-world-cup', handleNavWorldCup);
+
     const unsubscribeAuth = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setIsAuthReady(true);
@@ -1834,6 +2657,7 @@ export default function App() {
       unsubscribeSocial();
       unsubscribeLeaderboard();
       socket.off("matchUpdate");
+      window.removeEventListener('nav-world-cup', handleNavWorldCup);
     };
   }, []);
 
@@ -1947,14 +2771,20 @@ export default function App() {
         setLoadingMatchDetail(true);
         try {
           const res = await fetch(`/api/football/match/${selectedMatchId}`);
-          const contentType = res.headers.get("content-type");
-          if (!res.ok || !contentType || !contentType.includes("application/json")) {
+          if (!res.ok) {
             throw new Error(`Match detail fetch failed: ${res.status}`);
           }
-          const data = await res.json();
-          if (data.data) {
-            setFootballMatchDetail(data.data);
-          } else {
+          const contentType = res.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const data = await res.json();
+            if (data.data) {
+              setFootballMatchDetail(data.data);
+              return;
+            }
+          }
+          
+          // Match detail data missing or incorrect format - trigger fallback
+          console.warn(`[API] Match ${selectedMatchId} returned invalid or missing data. Using AI fallback.`);
             // AI Fallback for match metadata
             const match = matches.find(m => m.id === selectedMatchId);
             if (match) {
@@ -1977,8 +2807,7 @@ export default function App() {
                 setFootballMatchDetail(JSON.parse(response.text.trim()));
               }
             }
-          }
-        } catch (error) {
+          } catch (error) {
           console.error("Match detail error:", error);
           // AI Fallback on network/parse error too
           try {
@@ -2458,37 +3287,36 @@ export default function App() {
         </AnimatePresence>
       </div>
 
-      {/* Background Pattern */}
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#0ea5e908_1px,transparent_1px),linear-gradient(to_bottom,#0ea5e908_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
+      {/* Visual background layers */}
+      <div className="fixed inset-0 grid-bg pointer-events-none" />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.05),transparent_70%)] pointer-events-none" />
+      <div className="scanline" />
 
-      {/* Header */}
-      <header className="border-b border-line bg-surface/80 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between gap-4 md:gap-8">
-          <div className="flex items-center gap-3 md:gap-4 shrink-0">
-            <div className="w-8 h-8 md:w-10 md:h-10 bg-brand rounded-lg flex items-center justify-center glow-brand rotate-3">
-              <Zap className="text-white w-5 h-5 md:w-6 md:h-6 fill-current -rotate-3" />
-            </div>
-            <h1 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic font-display text-slate-900 leading-none">
-              LiveScore<span className="text-brand">X</span>
+      {/* Mobile Header */}
+      <header className="border-b border-slate-950/5 bg-white/80 backdrop-blur-3xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-24 md:h-28 flex items-center justify-between">
+          <div className="flex items-center gap-16">
+            <h1 className="text-2xl md:text-3xl font-display font-medium tracking-tighter text-slate-900 flex items-center gap-2 group cursor-pointer transition-transform hover:scale-[1.02]">
+              <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white shadow-2xl shadow-slate-400/20">
+                <Zap className="w-5 h-5 fill-current" />
+              </div>
+              <span className="font-bold">SPORTS</span><span className="text-brand font-black">HUB</span>
             </h1>
-          </div>
-          
-          <div className="flex items-center gap-4 lg:gap-10">
-            <div className="hidden md:flex items-center gap-4 md:gap-10 text-xs font-bold uppercase tracking-widest text-slate-400 py-2 md:py-0">
+            
+            <nav className="hidden xl:flex items-center gap-1.5 p-1 bg-slate-100/50 rounded-2xl border border-slate-200/50">
               <span 
                 onClick={() => {
                   setSelectedSport("all");
                   setSelectedLeague("all");
                 }}
-                className={cn("hover:text-brand transition-all cursor-pointer py-2 px-2 md:px-0 h-10 md:h-20 flex items-center relative whitespace-nowrap", selectedSport === "all" && "text-brand")}
-              >
-                All
-                {selectedSport === "all" && (
-                  <motion.div 
-                    layoutId="active-sport"
-                    className="absolute bottom-0 left-0 right-0 h-1 bg-brand rounded-full"
-                  />
+                className={cn(
+                  "px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 cursor-pointer",
+                  selectedSport === "all" 
+                    ? "bg-white text-slate-900 shadow-xl shadow-slate-200/50 border border-slate-200/30" 
+                    : "text-slate-400 hover:text-slate-900"
                 )}
+              >
+                World_Hub
               </span>
               
               <SportNavItem 
@@ -2559,66 +3387,72 @@ export default function App() {
                 setSelectedSport={setSelectedSport} 
                 setSelectedLeague={setSelectedLeague} 
               />
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center bg-slate-50 border border-slate-200/60 rounded-2xl px-5 py-2.5 gap-4">
+               <div className="flex items-center gap-2.5">
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    matches.some(m => m.id.startsWith("real-") || m.id.startsWith("cricket-")) ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.4)] animate-pulse" : "bg-brand animate-ping"
+                  )} />
+                  <span className="text-[10px] font-black tracking-[0.25em] uppercase text-slate-500 whitespace-nowrap">
+                    {matches.some(m => m.id.startsWith("real-") || m.id.startsWith("cricket-")) ? "Live Oracle Link" : "Virtual Engine Active"}
+                  </span>
+               </div>
             </div>
 
-            <div className="hidden md:flex items-center gap-3 md:gap-6 shrink-0 border-l border-slate-100 pl-4 md:pl-0 md:border-none">
+            <div className="h-10 w-px bg-slate-200 hidden md:block mx-4" />
+
+            <div className="hidden md:flex items-center gap-6 px-5 py-2.5 bg-slate-900 shadow-xl shadow-slate-950/20 rounded-2xl border border-slate-800">
+               <div className="flex flex-col text-right pr-4 border-r border-slate-800">
+                 <span className="text-[7px] font-mono font-black text-slate-500 tracking-widest leading-none">SYSTEM_LOCK</span>
+                 <span className="text-[10px] font-mono font-bold text-slate-200 tabular-nums">
+                   {new Date().toLocaleTimeString('en-US', { hour12: false })}
+                 </span>
+               </div>
+               <div className="flex flex-col">
+                 <span className="text-[7px] font-mono font-black text-slate-500 tracking-widest leading-none">HUB_STABILITY</span>
+                 <div className="flex items-center gap-1.5" title="AI Match Prediction Engine Load">
+                    <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                    <span className="text-[9px] font-mono font-bold text-white uppercase tracking-tighter">99.2%</span>
+                 </div>
+               </div>
+            </div>
+
+            <div className="h-10 w-px bg-slate-200 hidden md:block mx-4" />
+
+            <div className="flex items-center gap-3">
               {user ? (
-                <div className="flex items-center gap-4">
-                  <div className="flex flex-col items-end">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[9px] font-black px-1.5 py-0">
-                        {userProfile?.points || 0} PTS
-                      </Badge>
-                      <span className="text-[10px] font-bold text-slate-900 uppercase tracking-wider">{userProfile?.displayName || user.displayName}</span>
-                    </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => setIsProfileOpen(true)} className="text-[9px] font-bold text-brand uppercase hover:underline transition-colors">Profile</button>
-                      <button onClick={logout} className="text-[9px] font-bold text-slate-400 uppercase hover:text-red-500 transition-colors">Logout</button>
+                <button 
+                  onClick={() => setIsProfileOpen(true)}
+                  className="flex items-center gap-3 p-1.5 pr-5 bg-slate-900 text-white rounded-2xl cursor-pointer hover:bg-slate-800 transition-all shadow-2xl shadow-slate-400/30 group"
+                >
+                  <div className="relative">
+                    <img src={user.photoURL || ""} className="w-9 h-9 rounded-xl object-cover border-2 border-slate-800" referrerPolicy="no-referrer" />
+                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-slate-900 rounded-full flex items-center justify-center">
+                      <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                     </div>
                   </div>
-                  <button onClick={() => setIsProfileOpen(true)} className="relative group">
-                    {userProfile?.photoURL || user.photoURL ? (
-                      <img src={userProfile?.photoURL || user.photoURL || ""} alt="Profile" className="w-10 h-10 rounded-full border-2 border-white shadow-sm group-hover:border-brand transition-all" referrerPolicy="no-referrer" />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-sky-50 flex items-center justify-center border-2 border-white shadow-sm group-hover:border-brand transition-all">
-                        <User className="w-5 h-5 text-brand" />
-                      </div>
-                    )}
-                    <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-brand rounded-full border-2 border-white flex items-center justify-center">
-                      <Settings className="w-2 h-2 text-white" />
-                    </div>
-                  </button>
-                </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white leading-none">{user.displayName?.split(' ')[0]}</p>
+                    <p className="text-[9px] font-bold text-slate-400 uppercase mt-0.5 tracking-wider">{userProfile?.points || 0} PTS</p>
+                  </div>
+                </button>
               ) : (
                 <button 
                   onClick={login}
-                  className="flex items-center gap-2 px-4 py-2 bg-sky-50 text-brand border border-sky-100 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-brand hover:text-white transition-all"
+                  className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-brand transition-all shadow-2xl shadow-slate-900/10"
                 >
-                  <LogIn className="w-3.5 h-3.5" /> Login
+                  Access Terminal
                 </button>
               )}
             </div>
 
-            <div className="hidden md:flex">
-              <Badge variant="outline" className={cn(
-                "px-3 py-1 rounded-full transition-all",
-                matches.some(m => m.id.startsWith("real-") || m.id.startsWith("cricket-")) 
-                  ? "border-green-500/30 text-green-600 bg-green-50" 
-                  : "border-brand/30 text-brand bg-brand/5"
-              )}>
-                <div className={cn(
-                  "w-1.5 h-1.5 rounded-full mr-2 animate-pulse",
-                  matches.some(m => m.id.startsWith("real-") || m.id.startsWith("cricket-")) ? "bg-green-500" : "bg-brand"
-                )} />
-                <span className="text-[10px] font-bold tracking-widest uppercase">
-                  {matches.some(m => m.id.startsWith("real-") || m.id.startsWith("cricket-")) ? "Real-World Data Active" : "Live Engine Active"}
-                </span>
-              </Badge>
-            </div>
-
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden w-10 h-10 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:text-brand transition-colors"
+              className="xl:hidden w-12 h-12 rounded-2xl bg-white border border-slate-200 flex items-center justify-center text-slate-900 hover:border-brand transition-all shadow-lg shadow-slate-100"
             >
               {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -2696,29 +3530,44 @@ export default function App() {
           "lg:col-span-4 space-y-6 md:space-y-10 transition-all duration-500",
           selectedMatchId ? "hidden lg:block" : "block"
         )}>
-          <div className="flex flex-col gap-4 px-1 md:px-2">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Match Center</h2>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-brand animate-ping" />
-                <span className="text-xs font-bold text-brand uppercase tracking-wider">{filterMatches(matches, 'live').length} Live Now</span>
+          <div className="flex flex-col gap-6 px-1 md:px-2 mb-10">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Match Center</h2>
+              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-lg">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">{filterMatches(matches, 'live').length} Live</span>
               </div>
             </div>
             
-            {selectedLeague !== "all" && (
-              <div className="flex items-center justify-between bg-brand/5 border border-brand/10 p-3 rounded-xl">
-                <div className="flex items-center gap-2">
-                  <Trophy className="w-3.5 h-3.5 text-brand" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-brand">{selectedLeague}</span>
+            <div className="space-y-4">
+              {selectedLeague !== "all" && (
+                <div className="flex items-center justify-between bg-slate-900 p-3.5 rounded-2xl border border-slate-800 shadow-xl shadow-slate-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-white/10 flex items-center justify-center">
+                      <Trophy className="w-3.5 h-3.5 text-brand" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-white">{selectedLeague}</span>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedLeague("all")}
+                    className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
                 </div>
-                <button 
-                  onClick={() => setSelectedLeague("all")}
-                  className="text-[9px] font-bold uppercase tracking-widest text-slate-400 hover:text-brand transition-colors"
-                >
-                  Clear Filter
-                </button>
+              )}
+
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-brand transition-colors" />
+                <input 
+                  type="text"
+                  placeholder="Find matches..."
+                  value={matchSearchQuery}
+                  onChange={(e) => setMatchSearchQuery(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl pl-12 pr-4 py-4 text-xs font-medium focus:outline-none focus:ring-4 focus:ring-brand/5 focus:border-brand/40 transition-all text-slate-900 placeholder:text-slate-400"
+                />
               </div>
-            )}
+            </div>
           </div>
           
           <div className="space-y-10">
@@ -2734,9 +3583,9 @@ export default function App() {
                     {/* Cricket Section (Real-World) */}
                     {filterMatches(matches, 'live').filter(m => m.sport === 'cricket').length > 0 && (
                       <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 flex items-center gap-2 px-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                          Live Cricket
+                        <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-emerald-600 flex items-center gap-2 px-2 py-2 border-l-2 border-emerald-500 bg-emerald-50/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                          CRICKET_LIVE_DATA
                         </h3>
                         <div className="space-y-4">
                           {filterMatches(matches, 'live')
@@ -2747,81 +3596,90 @@ export default function App() {
                                 layoutId={match.id}
                                 onClick={() => setSelectedMatchId(match.id)}
                                 className={cn(
-                                  "group cursor-pointer p-5 rounded-2xl border transition-all duration-500 glass relative overflow-hidden",
+                                  "group cursor-pointer p-0 rounded-3xl border transition-all duration-500 relative overflow-hidden bg-white shadow-sm hover:shadow-2xl hover:shadow-slate-200/50",
                                   selectedMatchId === match.id
-                                    ? "border-brand/40 bg-brand/[0.03] shadow-[0_0_40px_rgba(14,165,233,0.05)] ring-1 ring-brand/20"
-                                    : "glass-hover"
+                                    ? "border-slate-900 ring-1 ring-slate-900 shadow-2xl shadow-slate-200"
+                                    : "border-slate-100"
                                 )}
                               >
-                                {selectedMatchId === match.id && (
-                                  <motion.div 
-                                    layoutId="active-glow"
-                                    className="absolute inset-0 bg-gradient-to-br from-brand/5 to-transparent pointer-events-none"
-                                  />
-                                )}
-                                
-                                <div className="flex justify-between items-center mb-4 relative z-10">
-                                  <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                                      {match.league || "Cricbuzz"} • {match.status === 'live' ? 'Live' : 'Finished'}
-                                    </span>
+                                <div className="p-5 space-y-4">
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2 px-2 py-1 bg-slate-50 rounded-lg border border-slate-100">
+                                      <Zap className="w-3 h-3 text-brand fill-current" />
+                                      <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500">
+                                        {match.league || "HUB LIVE"}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      {match.status === 'live' && (
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-500 rounded-md border border-red-100 shadow-sm">
+                                          <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse" />
+                                          <span className="text-[8px] font-black uppercase tracking-widest">Live</span>
+                                        </div>
+                                      )}
+                                      <MatchTimeDisplay match={match} />
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2">
+                                  
+                                  <div className="grid grid-cols-1 gap-px bg-slate-100 rounded-2xl overflow-hidden border border-slate-100">
+                                    <div className="bg-white p-3 flex items-center justify-between group-hover:bg-slate-50/50 transition-colors">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-6 h-6 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+                                          <Trophy className="w-3 h-3 text-slate-300" />
+                                        </div>
+                                        <span className={cn(
+                                          "text-[11px] font-bold tracking-tight transition-colors",
+                                          selectedMatchId === match.id ? "text-slate-900" : "text-slate-600 group-hover:text-slate-900"
+                                        )}>{match.homeTeam}</span>
+                                      </div>
+                                      <span className="font-mono font-bold text-base tabular-nums text-slate-900">{formatScore(match, 'home')}</span>
+                                    </div>
+                                    
+                                    <div className="bg-white p-3 flex items-center justify-between group-hover:bg-slate-50/50 transition-colors">
+                                      <div className="flex items-center gap-3">
+                                        <div className="w-6 h-6 rounded-md bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+                                          <Trophy className="w-3 h-3 text-slate-300" />
+                                        </div>
+                                        <span className={cn(
+                                          "text-[11px] font-bold tracking-tight transition-colors",
+                                          selectedMatchId === match.id ? "text-slate-900" : "text-slate-600 group-hover:text-slate-900"
+                                        )}>{match.awayTeam}</span>
+                                      </div>
+                                      <span className="font-mono font-bold text-base tabular-nums text-slate-900">{formatScore(match, 'away')}</span>
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-1">
+                                    <div className="flex -space-x-2">
+                                      <div className="w-5 h-5 rounded-full border-2 border-white bg-brand/10 flex items-center justify-center">
+                                        <Activity className="w-2.5 h-2.5 text-brand" />
+                                      </div>
+                                      <div className="w-5 h-5 rounded-full border-2 border-white bg-emerald-100 flex items-center justify-center">
+                                        <TrendingUp className="w-2.5 h-2.5 text-emerald-600" />
+                                      </div>
+                                    </div>
                                     <button
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         toggleFavorite(match.id);
                                       }}
                                       className={cn(
-                                        "p-1.5 rounded-full transition-all duration-300",
+                                        "w-8 h-8 rounded-xl flex items-center justify-center transition-all",
                                         userProfile?.favorites?.includes(match.id)
-                                          ? "text-red-500 bg-red-50"
-                                          : "text-slate-300 hover:text-red-400 hover:bg-slate-50"
+                                          ? "bg-red-50 text-red-500 border border-red-100"
+                                          : "bg-slate-50 text-slate-400 border border-slate-100 hover:text-red-400 hover:bg-white"
                                       )}
                                     >
                                       <Heart className={cn("w-3.5 h-3.5", userProfile?.favorites?.includes(match.id) && "fill-current")} />
                                     </button>
-                                    <MatchTimeDisplay match={match} />
                                   </div>
                                 </div>
-                                
-                                <div className="space-y-3 relative z-10">
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex flex-col">
-                                      <span 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setPlayerSearchQuery(match.homeTeam);
-                                          searchPlayers(match.homeTeam);
-                                          setActiveMainTab("player-search");
-                                        }}
-                                        className={cn(
-                                          "font-bold tracking-tight transition-colors hover:text-brand cursor-pointer",
-                                          selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
-                                        )}>{match.homeTeam}</span>
-                                      {match.homeScoreDetail && <span className="text-[9px] text-slate-400 font-medium">{match.homeScoreDetail}</span>}
-                                    </div>
-                                    <span className="font-display font-bold text-xl tabular-nums text-slate-900">{formatScore(match, 'home')}</span>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <div className="flex flex-col">
-                                      <span 
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setPlayerSearchQuery(match.awayTeam);
-                                          searchPlayers(match.awayTeam);
-                                          setActiveMainTab("player-search");
-                                        }}
-                                        className={cn(
-                                          "font-bold tracking-tight transition-colors hover:text-brand cursor-pointer",
-                                          selectedMatchId === match.id ? "text-slate-900" : "text-slate-600"
-                                        )}>{match.awayTeam}</span>
-                                      {match.awayScoreDetail && <span className="text-[9px] text-slate-400 font-medium">{match.awayScoreDetail}</span>}
-                                    </div>
-                                    <span className="font-display font-bold text-xl tabular-nums text-slate-900">{formatScore(match, 'away')}</span>
-                                  </div>
-                                </div>
+                                {selectedMatchId === match.id && (
+                                  <motion.div 
+                                    layoutId="card-accent"
+                                    className="absolute left-0 top-0 bottom-0 w-1 bg-slate-900"
+                                  />
+                                )}
                               </motion.div>
                             ))}
                         </div>
@@ -2831,9 +3689,9 @@ export default function App() {
                     {/* Baseball Section (Real-World) */}
                     {filterMatches(matches, 'live').filter(m => m.sport === 'baseball').length > 0 && (
                       <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-blue-600 flex items-center gap-2 px-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
-                          Live Baseball
+                        <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-blue-600 flex items-center gap-2 px-2 py-2 border-l-2 border-blue-500 bg-blue-50/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse shadow-[0_0_8px_rgba(37,99,235,0.5)]" />
+                          MLB_REALTIME_FEED
                         </h3>
                         <div className="space-y-4">
                           {filterMatches(matches, 'live')
@@ -2928,9 +3786,9 @@ export default function App() {
                     {/* NBA Basketball Section */}
                     {filterMatches(matches, 'live').filter(m => m.sport === 'basketball').length > 0 && (
                       <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-600 flex items-center gap-2 px-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
-                          NBA Basketball
+                        <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-orange-600 flex items-center gap-2 px-2 py-2 border-l-2 border-orange-500 bg-orange-50/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse shadow-[0_0_8px_rgba(234,88,12,0.5)]" />
+                          NBA_LIVE_ACCESS
                         </h3>
                         <div className="space-y-4">
                           {filterMatches(matches, 'live')
@@ -3019,9 +3877,9 @@ export default function App() {
                     {/* Tennis Section */}
                     {filterMatches(matches, 'live').filter(m => m.sport === 'tennis').length > 0 && (
                       <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-lime-600 flex items-center gap-2 px-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-lime-600 animate-pulse" />
-                          Live Tennis
+                        <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-lime-600 flex items-center gap-2 px-2 py-2 border-l-2 border-lime-500 bg-lime-50/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-lime-600 animate-pulse shadow-[0_0_8px_rgba(101,163,13,0.5)]" />
+                          TENNIS_TRACKER_V4
                         </h3>
                         <div className="space-y-4">
                           {filterMatches(matches, 'live')
@@ -3110,9 +3968,9 @@ export default function App() {
                     {/* NHL Hockey Section */}
                     {filterMatches(matches, 'live').filter(m => m.sport === 'hockey').length > 0 && (
                       <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2 px-2">
-                          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
-                          Live Hockey
+                        <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2 px-2 py-2 border-l-2 border-slate-400 bg-slate-50/30">
+                          <div className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-pulse" />
+                          HOCKEY_OPS_CENTER
                         </h3>
                         <div className="space-y-4">
                           {filterMatches(matches, 'live')
@@ -3202,11 +4060,11 @@ export default function App() {
 
                 {/* Live Section (Football & Others) */}
                 <div className="space-y-4">
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500 flex items-center gap-2 px-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-red-500 flex items-center gap-2 px-2 py-2 border-l-2 border-red-500 bg-red-50/30">
+                    <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
                     {selectedLeague !== "all" 
-                      ? `${selectedLeague} Live` 
-                      : selectedSport === "all" ? "Live Football & Others" : `Live ${selectedSport.charAt(0).toUpperCase() + selectedSport.slice(1)}`}
+                      ? `${selectedLeague.toUpperCase()}_LIVE` 
+                      : selectedSport === "all" ? "GLOBAL_LIVE_FEED" : `${selectedSport.toUpperCase()}_LIVE_OPS`}
                   </h3>
                   <div className="space-y-4">
                     {filterMatches(matches, 'live', selectedSport === "all" ? ['cricket', 'baseball', 'basketball', 'tennis', 'hockey'] : []).length > 0 ? (
@@ -3295,6 +4153,42 @@ export default function App() {
                                 <span className="font-display font-bold text-xl tabular-nums text-slate-900">{formatScore(match, 'away')}</span>
                               </div>
                             </div>
+                            
+                            {match.sport === 'football' && match.status === 'live' && (
+                              <div className="mt-4 pt-4 border-t border-slate-800/40">
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="text-[7px] font-mono font-black text-slate-500 uppercase tracking-[0.2em]">Momentum_Index</span>
+                                  <div className="flex gap-0.5">
+                                    {[...Array(5)].map((_, i) => (
+                                      <div key={i} className={cn("w-1 h-2 rounded-full", i < 3 ? "bg-brand/60" : "bg-slate-800")} />
+                                    ))}
+                                  </div>
+                                </div>
+                                <div className="flex h-1.5 gap-1 rounded-full overflow-hidden bg-slate-900 border border-white/5">
+                                  <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ width: `${50 + (Math.sin(Date.now()/5000) * 10)}%` }}
+                                    className="bg-brand h-full relative" 
+                                  >
+                                    <div className="absolute inset-x-0 top-0 h-[0.5px] bg-white/40" />
+                                  </motion.div>
+                                  <div className="bg-slate-800 h-full flex-1" />
+                                </div>
+                              </div>
+                            )}
+
+                            {match.status === 'live' && match.sport !== 'football' && (
+                              <div className="mt-4 pt-4 border-t border-slate-50">
+                                <div className="flex justify-between items-center mb-1.5">
+                                  <span className="text-[8px] font-mono font-black text-slate-400 uppercase">Field_Control</span>
+                                  <span className="text-[8px] font-mono font-bold text-brand uppercase">Dynamic_Shift</span>
+                                </div>
+                                <div className="flex h-1 gap-1 rounded-full overflow-hidden bg-slate-100">
+                                  <div className="bg-brand h-full transition-all duration-1000" style={{ width: '60%' }} />
+                                  <div className="bg-slate-300 h-full transition-all duration-1000" style={{ width: '40%' }} />
+                                </div>
+                              </div>
+                            )}
                           </motion.div>
                         ))
                     ) : (
@@ -3515,25 +4409,25 @@ export default function App() {
           )}
 
           <Tabs value={activeMainTab} onValueChange={setActiveMainTab} className="w-full">
-            <TabsList className="glass p-1 rounded-xl md:rounded-2xl w-full flex overflow-x-auto no-scrollbar justify-start h-auto gap-1 mb-6 md:mb-8">
-              <TabsTrigger value="for-you" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
-                <Heart className="w-4 h-4 mr-2" /> For You
+            <TabsList className="bg-slate-900/5 p-1 rounded-2xl w-full flex overflow-x-auto no-scrollbar justify-start h-auto gap-1 mb-8 border border-slate-200/50">
+              <TabsTrigger value="for-you" className="rounded-xl px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all whitespace-nowrap data-[state=active]:shadow-xl data-[state=active]:shadow-slate-400/20 group">
+                <Heart className="w-3.5 h-3.5 mr-2 group-data-[state=active]:fill-current" /> For_You
               </TabsTrigger>
-              <TabsTrigger value="matches" className="rounded-lg md:rounded-xl px-4 md:px-6 py-2 md:py-3 text-[10px] md:text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
-                <Trophy className="w-4 h-4 mr-2" /> Matches
+              <TabsTrigger value="matches" className="rounded-xl px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all whitespace-nowrap data-[state=active]:shadow-xl data-[state=active]:shadow-slate-400/20 group">
+                <Trophy className="w-3.5 h-3.5 mr-2 group-data-[state=active]:fill-current" /> Match_Feed
               </TabsTrigger>
-              <TabsTrigger value="social" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
-                <Share2 className="w-4 h-4 mr-2" /> Social Feed
+              <TabsTrigger value="social" className="rounded-xl px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all whitespace-nowrap data-[state=active]:shadow-xl data-[state=active]:shadow-slate-400/20 group">
+                <Share2 className="w-3.5 h-3.5 mr-2" /> Global_Feed
               </TabsTrigger>
-              <TabsTrigger value="leaderboard" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
-                <TrendingUp className="w-4 h-4 mr-2" /> Leaderboard
+              <TabsTrigger value="leaderboard" className="rounded-xl px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all whitespace-nowrap data-[state=active]:shadow-xl data-[state=active]:shadow-slate-400/20 group">
+                <TrendingUp className="w-3.5 h-3.5 mr-2" /> Ranking_System
               </TabsTrigger>
-              <TabsTrigger value="player-search" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
-                <Users className="w-4 h-4 mr-2" /> Player Search
+              <TabsTrigger value="player-search" className="rounded-xl px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all whitespace-nowrap data-[state=active]:shadow-xl data-[state=active]:shadow-slate-400/20 group">
+                <Users className="w-3.5 h-3.5 mr-2" /> Player_DB
               </TabsTrigger>
-              {(selectedSport === "cricket" || selectedSport === "tennis" || selectedSport === "football" || selectedSport === "hockey") && (
-                <TabsTrigger value="rankings" className="rounded-xl px-6 py-3 text-xs font-bold uppercase tracking-widest data-[state=active]:bg-brand data-[state=active]:text-white transition-all whitespace-nowrap">
-                  <Trophy className="w-4 h-4 mr-2" /> League Rankings
+              {(selectedSport === "cricket" || selectedSport === "tennis" || selectedSport === "football" || selectedSport === "hockey" || selectedSport === "basketball") && (
+                <TabsTrigger value="rankings" className="rounded-xl px-6 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] data-[state=active]:bg-slate-900 data-[state=active]:text-white transition-all whitespace-nowrap data-[state=active]:shadow-xl data-[state=active]:shadow-slate-400/20 group">
+                  <Trophy className="w-3.5 h-3.5 mr-2" /> Tournament_Hub
                 </TabsTrigger>
               )}
             </TabsList>
@@ -3620,142 +4514,259 @@ export default function App() {
                   >
                     {/* Cinematic Scoreboard */}
                 <div className="relative group">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-brand/20 via-transparent to-brand/20 rounded-[2rem] blur-2xl opacity-30 group-hover:opacity-50 transition duration-1000" />
-                  <Card className="glass border-sky-100 rounded-[2rem] overflow-hidden relative inner-glow">
-                    <CardContent className="p-4 md:p-12 overflow-hidden relative">
-                      <div className="flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-12 lg:pr-10">
-                        {selectedMatch.sport !== "formula1" ? (
-                           <>
-                             <div className="flex flex-row lg:flex-col items-center gap-4 md:gap-6 flex-1 w-full lg:w-auto">
-                               <div className="w-12 h-12 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl flex items-center justify-center border border-sky-100 shadow-sm relative shrink-0">
-                                 <Trophy className="w-6 h-6 md:w-12 md:h-12 text-brand" />
-                                 {selectedMatch.sport === "football" && (
-                                   <button 
-                                     onClick={() => {
-                                       setPlayerSearchQuery(selectedMatch.homeTeam);
-                                       searchPlayers(selectedMatch.homeTeam);
-                                     }}
-                                     className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-brand text-white p-1 md:p-1.5 rounded-lg shadow-lg hover:scale-110 transition-transform z-20"
-                                     title="Search Squad"
-                                   >
-                                     <Users className="w-2.5 h-2.5 md:w-4 md:h-4" />
-                                   </button>
-                                 )}
-                               </div>
-                               <h3 
-                                 onClick={() => {
-                                   setPlayerSearchQuery(selectedMatch.homeTeam);
-                                   searchPlayers(selectedMatch.homeTeam);
-                                   setActiveMainTab("player-search");
-                                 }}
-                                 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900 line-clamp-1 cursor-pointer hover:text-brand transition-colors"
-                               >
-                                 {selectedMatch.homeTeam}
-                               </h3>
-                             </div>
+                  <div className="absolute -inset-2 bg-gradient-to-r from-slate-900 via-brand/20 to-slate-900 rounded-[3rem] blur-3xl opacity-20 transition duration-1000 group-hover:opacity-40" />
+                  <Card className="bg-[#0A0B0E] border-slate-800/60 rounded-[2.5rem] overflow-hidden relative shadow-2xl shadow-slate-950/50 group/card">
+                    {/* Hardware micro-details */}
+                    <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-slate-700/50 to-transparent" />
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 flex gap-1 opacity-20">
+                      {Array(5).fill(0).map((_, i) => <div key={i} className="w-1 h-3 bg-slate-400 rounded-full" />)}
+                    </div>
 
-                             <div className="flex flex-col items-center gap-4 md:gap-6 w-full lg:w-auto">
-                               {selectedMatch.league && (
-                                 <div 
-                                   onClick={() => setActiveMainTab("rankings")}
-                                   className="text-[10px] md:text-xs font-black uppercase tracking-[0.3em] text-brand cursor-pointer hover:underline"
-                                 >
-                                   {selectedMatch.league}
-                                 </div>
-                               )}
-                               <div className="flex items-center gap-4 md:gap-8">
-                                 <div className="flex flex-col items-center">
-                                   <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{formatScore(selectedMatch, 'home')}</span>
-                                   {selectedMatch.homeScoreDetail && <span className="text-[10px] md:text-xs font-bold text-slate-400 mt-1">{selectedMatch.homeScoreDetail}</span>}
-                                 </div>
-                                 <div className="flex flex-col items-center gap-1">
-                                    <div className="w-1 h-1 rounded-full bg-slate-200" />
-                                    <div className="w-1 h-1 rounded-full bg-slate-200" />
-                                    <div className="w-1 h-1 rounded-full bg-slate-200" />
-                                 </div>
-                                 <div className="flex flex-col items-center">
-                                   <span className="text-5xl md:text-8xl font-black tracking-tighter tabular-nums font-display text-slate-900 text-glow">{formatScore(selectedMatch, 'away')}</span>
-                                   {selectedMatch.awayScoreDetail && <span className="text-[10px] md:text-xs font-bold text-slate-400 mt-1">{selectedMatch.awayScoreDetail}</span>}
-                                 </div>
-                               </div>
-                               <div className="flex flex-col items-center gap-4 md:gap-6 w-full">
-                                 <div className="flex items-center gap-2 md:gap-3 text-brand font-bold tracking-[0.2em] text-[10px] md:text-xs bg-brand/10 px-4 md:px-6 py-2 rounded-full border border-brand/20 uppercase whitespace-nowrap">
-                                   <MatchTimeDisplay match={selectedMatch} />
-                                   {selectedMatch.status === 'finished' && " • FINAL"}
-                                 </div>
-                                 <div className="flex items-center justify-center gap-6 md:gap-10 border-t border-slate-100 pt-4 md:pt-6 w-full">
-                                   <button onClick={() => setActiveTab("stats")} className="flex flex-col items-center gap-1 md:gap-2 group/btn">
-                                     <div className="p-2 md:p-3 rounded-xl bg-slate-50 text-slate-400 group-hover/btn:bg-brand/10 group-hover/btn:text-brand transition-colors">
-                                       <TrendingUp className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                     </div>
-                                     <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 group-hover/btn:text-brand">Stats</span>
-                                   </button>
-                                   <button onClick={() => setActiveTab("prediction")} className="flex flex-col items-center gap-1 md:gap-2 group/btn">
-                                     <div className="p-2 md:p-3 rounded-xl bg-slate-50 text-slate-400 group-hover/btn:bg-brand/10 group-hover/btn:text-brand transition-colors">
-                                       <Zap className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                     </div>
-                                     <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 group-hover/btn:text-brand">AI Tip</span>
-                                   </button>
-                                   <button onClick={() => setActiveTab("chat")} className="flex flex-col items-center gap-1 md:gap-2 group/btn">
-                                     <div className="p-2 md:p-3 rounded-xl bg-slate-50 text-slate-400 group-hover/btn:bg-brand/10 group-hover/btn:text-brand transition-colors">
-                                       <MessageSquare className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                     </div>
-                                     <span className="text-[8px] md:text-[10px] font-black uppercase text-slate-400 group-hover/btn:text-brand">Chat</span>
-                                   </button>
-                                 </div>
-                               </div>
-                             </div>
-
-                             <div className="flex flex-row-reverse lg:flex-col items-center gap-4 md:gap-6 flex-1 w-full lg:w-auto">
-                               <div className="w-12 h-12 md:w-24 md:h-24 bg-sky-50 rounded-2xl md:rounded-3xl flex items-center justify-center border border-sky-100 shadow-sm relative shrink-0">
-                                 <Trophy className="w-6 h-6 md:w-12 md:h-12 text-slate-200" />
-                                 {selectedMatch.sport === "football" && (
-                                   <button 
-                                     onClick={() => {
-                                       setPlayerSearchQuery(selectedMatch.awayTeam);
-                                       searchPlayers(selectedMatch.awayTeam);
-                                       setActiveMainTab("player-search");
-                                     }}
-                                     className="absolute -bottom-1 -right-1 md:-bottom-2 md:-right-2 bg-brand text-white p-1 md:p-1.5 rounded-lg shadow-lg hover:scale-110 transition-transform z-20"
-                                     title="Search Squad"
-                                   >
-                                     <Users className="w-2.5 h-2.5 md:w-4 md:h-4" />
-                                   </button>
-                                 )}
-                               </div>
-                               <h3 
-                                 onClick={() => {
-                                   setPlayerSearchQuery(selectedMatch.awayTeam);
-                                   searchPlayers(selectedMatch.awayTeam);
-                                   setActiveMainTab("player-search");
-                                 }}
-                                 className="text-xl md:text-3xl font-black uppercase tracking-tighter font-display text-slate-900 line-clamp-1 text-right lg:text-center cursor-pointer hover:text-brand transition-colors"
-                               >
-                                 {selectedMatch.awayTeam}
-                               </h3>
-                             </div>
-                           </>
-                         ) : (
-                          <div className="flex flex-col items-center w-full gap-6 md:gap-8">
-                            <div className="flex items-center gap-8 md:gap-12">
-                              <div className="text-center space-y-3 md:space-y-4">
-                                <div className="w-16 h-16 md:w-20 md:h-20 bg-brand/10 rounded-full mx-auto flex items-center justify-center border border-brand/20">
-                                  <Zap className="w-8 h-8 md:w-10 md:h-10 text-brand" />
-                                </div>
-                                <h3 className="text-xl md:text-2xl font-black uppercase tracking-tighter font-display text-slate-900">{selectedMatch.homeTeam}</h3>
-                                <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Current Leader</span>
-                              </div>
-                              <div className="text-6xl md:text-8xl font-black tracking-tighter text-brand font-display">P1</div>
+                    <CardContent className="p-0 relative h-full flex flex-col">
+                      {selectedMatch.sport !== 'formula1' ? (
+                        <>
+                          {/* Top Status Header */}
+                          <div className="bg-slate-900/50 border-b border-slate-800/40 px-8 py-3 flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                              <span className="text-[9px] font-mono font-black text-slate-400 uppercase tracking-[0.2em]">{selectedMatch.league || "SYSTEM_PROTOCOL_v5"}</span>
                             </div>
-                            <div className="flex items-center gap-3 md:gap-4 text-brand font-bold tracking-[0.2em] text-[10px] md:text-xs bg-brand/10 px-6 md:px-8 py-2 md:py-3 rounded-full border border-brand/20 uppercase min-h-[36px] md:min-h-[44px]">
-                              <MatchTimeDisplay match={selectedMatch} />
+                            {selectedMatch.status === 'finished' && (
+                              <div className="px-4 py-1 bg-brand/10 border border-brand/20 rounded-lg">
+                                <span className="text-[10px] font-bold text-brand uppercase tracking-widest leading-none">
+                                  {selectedMatch.homeScore > selectedMatch.awayScore ? selectedMatch.homeTeam : selectedMatch.awayTeam} DECLARED VICTOR
+                                </span>
+                              </div>
+                            )}
+                            <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2 px-3 py-1 bg-white/[0.03] rounded-md border border-white/5">
+                                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Fan_Pulse</span>
+                                <div className="flex gap-0.5">
+                                  {[...Array(5)].map((_, i) => (
+                                    <div key={i} className={cn("w-1 h-2 rounded-full", i < 4 ? "bg-emerald-500/60" : "bg-slate-800")} />
+                                  ))}
+                                </div>
+                                <span className="text-[8px] font-mono text-emerald-500 font-black uppercase">Optimistic</span>
+                              </div>
+                              <span className="text-[9px] font-mono text-slate-500 uppercase">Latency: 12.4ms</span>
+                              <div className="w-px h-3 bg-slate-800" />
+                              <Badge variant="outline" className="font-mono text-[8px] bg-slate-900 border-slate-800 text-slate-400">{selectedMatch.sport.toUpperCase()}_LINK</Badge>
                             </div>
                           </div>
-                        )}
-                      </div>
+
+                          <div className={cn(
+                            "p-4 md:p-8 lg:p-12 grid grid-cols-1 items-center gap-8 lg:gap-4 flex-1 w-full max-w-full overflow-hidden relative",
+                            selectedMatch.sport === 'football' ? "lg:grid-cols-1" : "lg:grid-cols-[1fr_2fr_1fr]"
+                          )}>
+                            {selectedMatch.sport === 'football' ? (
+                              <div className="flex flex-col items-center justify-center space-y-12 py-6">
+                                <div className="flex items-center justify-center gap-4 md:gap-16 lg:gap-24 w-full px-2">
+                                  {/* Home Team Editorial */}
+                                  <div className="flex flex-col items-center gap-4 group/home flex-1 min-w-0">
+                                    <div className="relative">
+                                      <div className="absolute -inset-4 bg-brand/20 rounded-full blur-2xl opacity-0 group-hover/home:opacity-100 transition-all duration-700" />
+                                      <div className="w-16 h-16 md:w-32 md:h-32 rounded-[1.5rem] md:rounded-[2.5rem] bg-slate-900 border-2 border-white/5 flex items-center justify-center relative z-10 overflow-hidden shadow-2xl transition-all duration-500 group-hover/home:-rotate-6">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                                        <Trophy className="w-8 h-8 md:w-16 md:h-16 text-white" />
+                                      </div>
+                                    </div>
+                                    <div className="text-center space-y-1 w-full flex flex-col items-center min-w-0">
+                                      <h3 className="text-base md:text-3xl lg:text-4xl font-display font-black text-white uppercase tracking-tighter truncate w-full px-2 drop-shadow-lg">
+                                        {selectedMatch.homeTeam}
+                                      </h3>
+                                      <span className="text-[8px] md:text-[10px] font-mono text-slate-500 uppercase tracking-widest">Home_Entity</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Massive Score Editorial */}
+                                  <div className="flex flex-col items-center gap-6 md:gap-12 relative flex-shrink-0">
+                                    <div className="flex items-center gap-4 md:gap-12 relative">
+                                      <div className="absolute -top-16 left-1/2 -translate-x-1/2 flex items-center gap-2 opacity-50 whitespace-nowrap">
+                                        <div className="w-8 h-[1px] bg-slate-700" />
+                                        <span className="text-[10px] font-mono font-black text-brand uppercase tracking-widest">{selectedMatch.time || "MATCH_START"}</span>
+                                        <div className="w-8 h-[1px] bg-slate-700" />
+                                      </div>
+
+                                      <span className="text-6xl md:text-[10rem] lg:text-[12rem] xl:text-[15rem] font-display font-black text-white tabular-nums tracking-tighter leading-none drop-shadow-[0_0_80px_rgba(255,255,255,0.05)]">
+                                        {selectedMatch.homeScore}
+                                      </span>
+                                      <div className="flex flex-col gap-2 md:gap-3 py-4 md:py-6 px-2 md:px-3 bg-white/5 backdrop-blur-md rounded-full border border-white/10 shadow-2xl">
+                                        <div className="w-2 h-2 rounded-full bg-brand animate-ping" />
+                                        <div className="w-2 h-2 rounded-full bg-slate-800" />
+                                        <div className="w-2 h-2 rounded-full bg-slate-800" />
+                                      </div>
+                                      <span className="text-6xl md:text-[10rem] lg:text-[12rem] xl:text-[15rem] font-display font-black text-white tabular-nums tracking-tighter leading-none drop-shadow-[0_0_80px_rgba(255,255,255,0.05)]">
+                                        {selectedMatch.awayScore}
+                                      </span>
+                                    </div>
+
+                                    {/* Win Prob Overlay - Positioned relatively to avoid overlap */}
+                                    <div className="flex items-center gap-4 md:gap-8 whitespace-nowrap bg-brand px-6 py-2.5 rounded-full shadow-[0_20px_40px_rgba(14,165,233,0.3)] border border-white/20 z-20 group/prob scale-75 md:scale-100">
+                                      <div className="flex items-center gap-3">
+                                        <span className="text-[10px] font-black text-white/60 uppercase">Win_Prob</span>
+                                        <span className="text-sm font-black text-white italic group-hover/prob:scale-110 transition-transform">64.2%</span>
+                                      </div>
+                                      <div className="w-px h-3 bg-white/20" />
+                                      <span className="text-[10px] font-black text-white uppercase tracking-widest group-hover/prob:tracking-[0.2em] transition-all">Optimal_Phase</span>
+                                    </div>
+                                  </div>
+
+                                  {/* Away Team Editorial */}
+                                  <div className="flex flex-col items-center gap-4 group/away flex-1 min-w-0">
+                                    <div className="relative">
+                                      <div className="absolute -inset-4 bg-brand/20 rounded-full blur-2xl opacity-0 group-hover/away:opacity-100 transition-all duration-700" />
+                                      <div className="w-16 h-16 md:w-32 md:h-32 rounded-[1.5rem] md:rounded-[2.5rem] bg-slate-900 border-2 border-white/5 flex items-center justify-center relative z-10 overflow-hidden shadow-2xl transition-all duration-500 group-hover/away:rotate-6">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent" />
+                                        <Trophy className="w-8 h-8 md:w-16 md:h-16 text-white" />
+                                      </div>
+                                    </div>
+                                    <div className="text-center space-y-1 w-full flex flex-col items-center min-w-0">
+                                      <h3 className="text-base md:text-3xl lg:text-4xl font-display font-black text-white uppercase tracking-tighter truncate w-full px-2 drop-shadow-lg">
+                                        {selectedMatch.awayTeam}
+                                      </h3>
+                                      <span className="text-[8px] md:text-[10px] font-mono text-slate-500 uppercase tracking-widest">Away_Entity</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                {/* Home Team Module */}
+                                <div className="flex flex-col items-center gap-4 lg:gap-6 animate-in fade-in slide-in-from-left-8 duration-700">
+                                  <div className="relative group/team">
+                                    <div className="w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 bg-slate-900 rounded-[2rem] flex items-center justify-center border border-slate-800 shadow-2xl transition-all duration-500 group-hover/team:border-brand/40">
+                                      <div className="absolute inset-2 border border-slate-800/20 rounded-2xl pointer-events-none" />
+                                      <Trophy className="w-8 h-8 md:w-12 md:h-12 lg:w-14 lg:h-14 text-slate-100 opacity-60 group-hover/team:scale-110 transition-transform duration-500" />
+                                    </div>
+                                    <div className="absolute -top-3 -left-3 px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[7px] font-mono text-brand tracking-[0.2em] uppercase shadow-2xl">
+                                      Home_Node
+                                    </div>
+                                  </div>
+                                  <h3 className="text-lg md:text-2xl lg:text-3xl font-display font-black uppercase tracking-tighter text-white text-center line-clamp-1">
+                                    {selectedMatch.homeTeam}
+                                  </h3>
+                                </div>
+
+                                {/* Central Score Node */}
+                                <div className="flex flex-col items-center justify-center gap-6 lg:gap-8 min-w-0">
+                                  <div className="flex items-center justify-center gap-4 md:gap-8 w-full group/score">
+                                    <div className="flex flex-col items-center gap-1 min-w-0">
+                                      <span className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-mono font-black tracking-tighter text-white tabular-nums drop-shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all group-hover/score:text-brand break-all leading-none">
+                                        {formatScore(selectedMatch, 'home')}
+                                      </span>
+                                      {selectedMatch.homeScoreDetail && <span className="text-[8px] md:text-[10px] font-mono text-slate-500 uppercase font-bold tracking-widest text-center truncate w-full">{selectedMatch.homeScoreDetail}</span>}
+                                    </div>
+
+                                    <div className="flex flex-col gap-2 md:gap-3 py-6 md:py-8 lg:py-10 px-4 md:px-6 bg-slate-900 border border-slate-800/80 rounded-2xl md:rounded-3xl relative overflow-hidden shadow-2xl shrink-0">
+                                      <div className="absolute inset-0 bg-brand/5 animate-pulse" />
+                                      <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-brand shadow-[0_0_10px_rgba(14,165,233,0.8)] relative z-10" />
+                                      <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-slate-800 relative z-10" />
+                                      <div className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-slate-800 relative z-10" />
+                                    </div>
+
+                                    <div className="flex flex-col items-center gap-1 min-w-0">
+                                      <span className="text-4xl md:text-6xl lg:text-7xl xl:text-8xl font-mono font-black tracking-tighter text-white tabular-nums drop-shadow-[0_0_40px_rgba(255,255,255,0.05)] transition-all group-hover/score:text-brand break-all leading-none">
+                                        {formatScore(selectedMatch, 'away')}
+                                      </span>
+                                      {selectedMatch.awayScoreDetail && <span className="text-[8px] md:text-[10px] font-mono text-slate-500 uppercase font-bold tracking-widest text-center truncate w-full">{selectedMatch.awayScoreDetail}</span>}
+                                    </div>
+                                  </div>
+
+                                  {/* Result Prompt */}
+                                  {selectedMatch.status === 'finished' && (
+                                    <div className="px-4 md:px-8 py-2 md:py-3 bg-slate-900 border border-slate-800 rounded-xl md:rounded-2xl shrink-0 max-w-full truncate">
+                                      <p className="text-[9px] md:text-[11px] font-mono font-bold text-slate-300 uppercase tracking-[0.2em] truncate">
+                                        Report: {selectedMatch.matchResult || "Data_Analysis_Complete"}
+                                      </p>
+                                    </div>
+                                  )}
+
+                                  <div className="flex flex-wrap justify-center items-center gap-3 md:gap-6">
+                                    <div className="px-4 md:px-6 py-2 md:py-2.5 bg-slate-900 border border-slate-800 rounded-xl md:rounded-2xl flex items-center gap-2 md:gap-3 backdrop-blur-3xl shadow-xl shadow-black/20">
+                                      <Clock className="w-3 md:w-4 h-3 md:h-4 text-brand" />
+                                      <div className="text-[8px] md:text-[10px] font-mono font-bold text-slate-300 uppercase tracking-widest whitespace-nowrap">
+                                        <MatchTimeDisplay match={selectedMatch} />
+                                      </div>
+                                    </div>
+                                    {selectedMatch.status === 'live' && (
+                                      <div className="px-4 md:px-6 py-2 md:py-2.5 bg-red-500/10 border border-red-500/20 rounded-xl md:rounded-2xl flex items-center gap-2 md:gap-3 animate-pulse shadow-xl shadow-red-500/10">
+                                        <Activity className="w-3 md:w-4 h-3 md:h-4 text-red-500" />
+                                        <span className="text-[8px] md:text-[10px] font-mono font-black text-red-500 uppercase tracking-[0.3em] whitespace-nowrap">LIVE_SYNC</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                {/* Away Team Module */}
+                                <div className="flex flex-col items-center gap-4 lg:gap-6 animate-in fade-in slide-in-from-right-8 duration-700">
+                                  <div className="relative group/team-away">
+                                    <div className="w-20 h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 bg-slate-900 rounded-[2rem] flex items-center justify-center border border-slate-800 shadow-2xl transition-all duration-500 group-hover/team-away:border-brand/40">
+                                      <div className="absolute inset-2 border border-slate-800/20 rounded-2xl pointer-events-none" />
+                                      <Trophy className="w-8 h-8 md:w-12 md:h-12 lg:w-14 lg:h-14 text-slate-100 opacity-60 group-hover/team-away:scale-110 transition-transform duration-500" />
+                                    </div>
+                                    <div className="absolute -top-3 -right-3 px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-[7px] font-mono text-brand tracking-[0.2em] uppercase shadow-2xl">
+                                      Away_Node
+                                    </div>
+                                  </div>
+                                  <h3 className="text-lg md:text-2xl lg:text-3xl font-display font-black uppercase tracking-tighter text-white text-center line-clamp-1">
+                                    {selectedMatch.awayTeam}
+                                  </h3>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Unified Functional Footer Navigation */}
+                          <div className="mt-8 mb-14 flex items-center justify-center gap-10 border-t border-slate-800/40 pt-10 w-full max-w-2xl mx-auto z-20">
+                            <button onClick={() => setActiveTab("stats")} className="flex flex-col items-center gap-3 group/nav">
+                              <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover/nav:bg-brand/10 group-hover/nav:text-brand transition-all group-hover/nav:-translate-y-1 shadow-lg shadow-black/40">
+                                <TrendingUp className="w-6 h-6" />
+                              </div>
+                              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-slate-500 group-hover/nav:text-slate-300">Analytics</span>
+                            </button>
+                            <button onClick={() => setActiveTab("prediction")} className="flex flex-col items-center gap-3 group/nav">
+                              <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover/nav:bg-brand/10 group-hover/nav:text-brand transition-all group-hover/nav:-translate-y-1 shadow-lg shadow-black/40">
+                                <Zap className="w-6 h-6" />
+                              </div>
+                              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-slate-500 group-hover/nav:text-slate-300">Oracle</span>
+                            </button>
+                            <button onClick={() => setActiveTab("chat")} className="flex flex-col items-center gap-3 group/nav">
+                              <div className="w-14 h-14 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 group-hover/nav:bg-brand/10 group-hover/nav:text-brand transition-all group-hover/nav:-translate-y-1 shadow-lg shadow-black/40">
+                                <MessageSquare className="w-6 h-6" />
+                              </div>
+                              <span className="text-[10px] font-mono font-black uppercase tracking-widest text-slate-500 group-hover/nav:text-slate-300">Hub_Feed</span>
+                            </button>
+                          </div>
+
+                          {/* Lower hardware bar */}
+                          <div className="bg-slate-950/80 border-t border-slate-800/40 p-4 flex justify-center items-center gap-10">
+                            <div className="flex items-center gap-2">
+                              <Activity className="w-3 h-3 text-slate-500" />
+                              <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest">Buffer Status: Optimal</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Zap className="w-3 h-3 text-slate-500" />
+                              <span className="text-[8px] font-mono text-slate-600 uppercase tracking-widest">Signal: Phase_Locked</span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center w-full gap-12 py-10">
+                          <div className="flex items-center gap-20">
+                            <div className="text-center space-y-6">
+                              <div className="w-24 h-24 bg-brand/5 rounded-3xl mx-auto flex items-center justify-center border border-brand/20 shadow-inner">
+                                <Zap className="w-12 h-12 text-brand animate-pulse" />
+                              </div>
+                              <h3 className="text-3xl font-black uppercase tracking-tighter text-white font-display">{selectedMatch.homeTeam}</h3>
+                              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.3em]">Track_Leader</span>
+                            </div>
+                            <div className="text-[12rem] font-mono font-black tracking-tighter text-brand drop-shadow-[0_0_50px_rgba(14,165,233,0.3)]">P1</div>
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
-                  </Card>
-                </div>
+                </Card>
+              </div>
 
                 <div className="flex items-center justify-between gap-4">
                   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -3877,44 +4888,234 @@ export default function App() {
                       </div>
                     </TabsContent>
 
-                  <TabsContent value="events" className="mt-8 outline-none">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 pr-0 md:pr-4">
-                       <Card className="glass border-sky-100 rounded-2xl">
-                         <CardHeader>
-                           <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Match Possession</CardTitle>
-                         </CardHeader>
-                         <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between font-display font-bold">
-                              <span className="text-sm text-slate-900">{selectedMatch.homeTeam}</span>
-                              <span className="text-brand text-xl">54%</span>
-                            </div>
-                            <div className="h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
-                              <div className="h-full bg-brand rounded-full glow-brand transition-all duration-1000" style={{ width: '54%' }} />
-                            </div>
-                         </CardContent>
-                       </Card>
-                       <Card className="glass border-sky-100 rounded-2xl">
-                         <CardHeader>
-                           <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Shot Efficiency</CardTitle>
-                         </CardHeader>
-                         <CardContent className="space-y-6">
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-bold text-slate-900">{selectedMatch.homeTeam}</span>
-                              <div className="flex gap-1">
-                                {Array(8).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-brand rounded-sm" />)}
-                                {Array(4).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-slate-100 rounded-sm" />)}
+                  <TabsContent value="events" className="mt-8 outline-none space-y-8">
+                    {selectedMatch.sport === 'football' ? (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Attack Intensity Timeline */}
+                        <Card className="glass border-white/5 bg-slate-900/50 rounded-[2rem] overflow-hidden col-span-1 lg:col-span-2">
+                          <CardHeader className="flex flex-row items-center justify-between pb-2 border-b border-white/5">
+                            <CardTitle className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-slate-400">Match_Momentum_Pulse</CardTitle>
+                            <Badge variant="outline" className="bg-brand/10 text-brand border-brand/20 text-[9px] font-black uppercase tracking-widest">REAL_TIME_HUD</Badge>
+                          </CardHeader>
+                          <CardContent className="pt-8 pb-4 h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={[
+                                { time: '0', h: 30, a: 20 },
+                                { time: '15', h: 45, a: 30 },
+                                { time: '30', h: 60, a: 40 },
+                                { time: '45', h: 55, a: 50 },
+                                { time: '60', h: 75, a: 35 },
+                                { time: '75', h: 85, a: 20 },
+                                { time: '90', h: 40, a: 60 },
+                              ]}>
+                                <defs>
+                                  <linearGradient id="colorHome" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                                  </linearGradient>
+                                  <linearGradient id="colorAway" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#ffffff" stopOpacity={0.1}/>
+                                    <stop offset="95%" stopColor="#ffffff" stopOpacity={0}/>
+                                  </linearGradient>
+                                </defs>
+                                <XAxis dataKey="time" stroke="#475569" fontSize={10} tickLine={false} axisLine={false} />
+                                <Tooltip 
+                                  contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '12px' }}
+                                  itemStyle={{ color: '#f8fafc', fontSize: '10px' }}
+                                />
+                                <Area type="monotone" dataKey="h" stroke="#0ea5e9" fillOpacity={1} fill="url(#colorHome)" strokeWidth={3} />
+                                <Area type="monotone" dataKey="a" stroke="#94a3b8" fillOpacity={1} fill="url(#colorAway)" strokeWidth={2} strokeDasharray="5 5" />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </CardContent>
+                          <CardFooter className="bg-white/[0.02] border-t border-white/5 py-3 px-6 flex justify-between items-center">
+                            <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Unit: Expected_Intensity_v1.2</span>
+                            <div className="flex gap-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-brand" />
+                                <span className="text-[8px] font-mono text-slate-300 uppercase">{selectedMatch.homeTeam}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full bg-slate-500" />
+                                <span className="text-[8px] font-mono text-slate-300 uppercase">{selectedMatch.awayTeam}</span>
                               </div>
                             </div>
-                            <div className="flex items-center justify-between">
-                              <span className="text-sm font-bold text-slate-900">{selectedMatch.awayTeam}</span>
-                              <div className="flex gap-1">
-                                {Array(5).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-slate-300 rounded-sm" />)}
-                                {Array(7).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-slate-100 rounded-sm" />)}
+                          </CardFooter>
+                        </Card>
+
+                        {/* Tactical Sliders */}
+                        <div className="space-y-6">
+                           <Card className="glass border-white/5 bg-slate-900/40 rounded-[2rem]">
+                             <CardHeader className="pb-2">
+                               <CardTitle className="text-[9px] font-mono font-black uppercase text-slate-400">Positioning_Heat</CardTitle>
+                             </CardHeader>
+                             <CardContent className="space-y-6">
+                                {[
+                                  { label: 'Defensive_Block', val: 78 },
+                                  { label: 'Midfield_Density', val: 92 },
+                                  { label: 'Attacking_Width', val: 84 },
+                                ].map((stat, i) => (
+                                  <div key={i} className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{stat.label}</span>
+                                      <span className="text-xs font-black text-brand tabular-nums">{stat.val}%</span>
+                                    </div>
+                                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-white/5">
+                                      <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${stat.val}%` }}
+                                        transition={{ duration: 1, delay: i * 0.1 }}
+                                        className="h-full bg-brand rounded-full glow-brand" 
+                                      />
+                                    </div>
+                                  </div>
+                                ))}
+                             </CardContent>
+                           </Card>
+                        </div>
+
+                        {/* Shot Distribution Matrix */}
+                        <Card className="glass border-white/5 bg-slate-900/40 rounded-[2rem]">
+                          <CardHeader className="pb-2">
+                             <CardTitle className="text-[9px] font-mono font-black uppercase text-slate-400">Fire_Control_Matrix</CardTitle>
+                          </CardHeader>
+                          <CardContent className="grid grid-cols-2 gap-4">
+                             {[
+                               { label: 'Inside_Box', val: '12/14', score: 85 },
+                               { label: 'Long_Range', val: '4/9', score: 44 },
+                               { label: 'Set_Pieces', val: '2/3', score: 66 },
+                               { label: 'Counter_Attacks', val: '5/5', score: 100 },
+                             ].map((m, i) => (
+                               <div key={i} className="bg-slate-950/40 border border-white/5 p-4 rounded-2xl flex flex-col items-center gap-2">
+                                 <div className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">{m.label}</div>
+                                 <div className="text-lg font-black text-white">{m.val}</div>
+                                 <div className={cn(
+                                   "px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest",
+                                   m.score > 70 ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"
+                                 )}>Rating: {m.score}</div>
+                               </div>
+                             ))}
+                          </CardContent>
+                        </Card>
+
+                        {/* Chronological Mission Log (Match Events) */}
+                        <div className="col-span-1 lg:col-span-2 mt-4 space-y-6">
+                           <div className="flex items-center justify-between px-2">
+                             <h4 className="text-[10px] font-mono font-black uppercase tracking-[0.4em] text-slate-400 flex items-center gap-2">
+                               <Radio className="w-3 h-3 text-brand" /> Chronological_Mission_Log
+                             </h4>
+                             <span className="text-[8px] font-mono text-slate-500 uppercase">Status: Live_Transcription_Active</span>
+                           </div>
+
+                           <div className="space-y-4">
+                             {selectedMatch.events.length > 0 ? (
+                               selectedMatch.events.map((event, i) => (
+                                 <motion.div 
+                                   key={event.id}
+                                   initial={{ opacity: 0, x: -20 }}
+                                   whileInView={{ opacity: 1, x: 0 }}
+                                   transition={{ delay: i * 0.1 }}
+                                   viewport={{ once: true }}
+                                   className="group/event relative flex gap-6"
+                                 >
+                                    {/* Timeline Line */}
+                                    {i < selectedMatch.events.length - 1 && (
+                                      <div className="absolute left-4 top-8 bottom-[-16px] w-[2px] bg-slate-800/50 group-hover/event:bg-brand/30 transition-colors" />
+                                    )}
+
+                                    {/* Event Icon Node */}
+                                    <div className="relative z-10 w-8 h-8 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0 group-hover/event:border-brand/50 group-hover/event:shadow-[0_0_15px_rgba(14,165,233,0.3)] transition-all">
+                                      {event.type.toLowerCase().includes('goal') ? (
+                                        <Trophy className="w-4 h-4 text-brand" />
+                                      ) : event.type.toLowerCase().includes('card') ? (
+                                        <div className={cn("w-3 h-4 rounded-sm", event.description.toLowerCase().includes('red') ? "bg-red-500" : "bg-amber-400")} />
+                                      ) : (
+                                        <Activity className="w-4 h-4 text-slate-400" />
+                                      )}
+                                    </div>
+
+                                    {/* Event Data Block */}
+                                    <div className="flex-1 glass p-5 rounded-2xl border-white/5 space-y-3 group-hover/event:bg-white/5 transition-all">
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                          <span className="text-sm font-black text-white tabular-nums tracking-tighter">{event.time}'</span>
+                                          <Badge className="bg-slate-950 border-slate-800 text-slate-400 text-[8px] font-mono tracking-widest uppercase">
+                                            {event.type.replace('_', ' ')}
+                                          </Badge>
+                                        </div>
+                                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter">Event_ID: {event.id.slice(0, 8)}</span>
+                                      </div>
+                                      
+                                      <p className="text-sm font-medium text-slate-300 leading-snug">
+                                        {event.description}
+                                      </p>
+
+                                      {event.aiCommentary && (
+                                        <div className="mt-3 pt-3 border-t border-slate-800/50 flex gap-3">
+                                          <div className="w-5 h-5 rounded-md bg-brand/10 flex items-center justify-center text-brand shrink-0">
+                                            <Zap className="w-3 h-3" />
+                                          </div>
+                                          <p className="text-[11px] italic text-slate-400 leading-relaxed">
+                                            {event.aiCommentary}
+                                          </p>
+                                        </div>
+                                      )}
+                                    </div>
+                                 </motion.div>
+                               ))
+                             ) : (
+                               <div className="glass p-12 rounded-[2rem] border-white/5 border-dashed flex flex-col items-center justify-center gap-4 text-center">
+                                 <div className="w-12 h-12 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center">
+                                   <Radio className="w-6 h-6 text-slate-600 animate-pulse" />
+                                 </div>
+                                 <div>
+                                   <h5 className="text-xs font-black text-slate-400 uppercase tracking-widest">Waiting_For_Input</h5>
+                                   <p className="text-[10px] font-mono text-slate-600 uppercase">No_significant_events_recorded_yet</p>
+                                 </div>
+                               </div>
+                             )}
+                           </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 pr-0 md:pr-4">
+                        <Card className="glass border-sky-100 rounded-2xl">
+                          <CardHeader>
+                            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Match Possession</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                              <div className="flex items-center justify-between font-display font-bold">
+                                <span className="text-sm text-slate-900">{selectedMatch.homeTeam}</span>
+                                <span className="text-brand text-xl">54%</span>
                               </div>
-                            </div>
-                         </CardContent>
-                       </Card>
-                    </div>
+                              <div className="h-3 bg-slate-100 rounded-full overflow-hidden p-0.5">
+                                <div className="h-full bg-brand rounded-full glow-brand transition-all duration-1000" style={{ width: '54%' }} />
+                              </div>
+                          </CardContent>
+                        </Card>
+                        <Card className="glass border-sky-100 rounded-2xl">
+                          <CardHeader>
+                            <CardTitle className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Shot Efficiency</CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-6">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-900">{selectedMatch.homeTeam}</span>
+                                <div className="flex gap-1">
+                                  {Array(8).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-brand rounded-sm" />)}
+                                  {Array(4).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-slate-100 rounded-sm" />)}
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-bold text-slate-900">{selectedMatch.awayTeam}</span>
+                                <div className="flex gap-1">
+                                  {Array(5).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-slate-300 rounded-sm" />)}
+                                  {Array(7).fill(0).map((_, i) => <div key={i} className="w-2 h-6 bg-slate-100 rounded-sm" />)}
+                                </div>
+                              </div>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
                   </TabsContent>
 
                   <TabsContent value="prediction" className="mt-8 outline-none">
@@ -4076,14 +5277,86 @@ export default function App() {
                     </div>
                   </TabsContent>
                   <TabsContent value="lineups" className="mt-8 outline-none">
-                    <FootballLineups 
-                      matchId={selectedMatch.id} 
-                      onPlayerClick={(name) => {
-                        setPlayerSearchQuery(name);
-                        searchPlayers(name);
-                        setActiveMainTab("player-search");
-                      }}
-                    />
+                    <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-10">
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between px-2">
+                          <h3 className="text-[10px] font-mono font-black uppercase tracking-[0.3em] text-slate-400">Tactical_Field_Analysis</h3>
+                          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] font-black tracking-widest">REAL_TIME_SYNC</Badge>
+                        </div>
+                        <FootballTacticalPitch match={selectedMatch} />
+                      </div>
+                      
+                      <div className="space-y-8 animate-in fade-in slide-in-from-right-10 duration-1000 delay-300">
+                        <div className="space-y-6">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center text-brand">
+                              <ShieldCheck className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-black uppercase tracking-widest text-white">Squad_Analytics</h4>
+                              <p className="text-[9px] font-mono text-slate-500 uppercase tracking-tighter">Formation_Integrity: 94.2%</p>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            {[
+                              { label: 'Avg_Position', val: 'High_Press' },
+                              { label: 'Intensity', val: 'Maximum' },
+                              { label: 'Stability', val: 'Optimal' },
+                              { label: 'Transition', val: 'Fast' },
+                            ].map((s, i) => (
+                              <div key={i} className="glass p-4 rounded-2xl border-white/5 space-y-1">
+                                <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">{s.label}</span>
+                                <p className="text-sm font-black text-brand uppercase tracking-tighter">{s.val}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-[10px] font-mono font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
+                            <Activity className="w-3 h-3" /> Tactical_Briefing
+                          </h4>
+                          <div className="bg-slate-900/50 border border-slate-800 p-6 rounded-[2rem] space-y-4 relative overflow-hidden group/brief">
+                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover/brief:opacity-30 transition-opacity">
+                              <Zap className="w-12 h-12 text-brand" />
+                            </div>
+                            <p className="text-sm text-slate-300 leading-relaxed font-medium italic">
+                              "Home team operating in a high-intensity 4-3-3. Defensive line pushed significantly forward to compress play, relying on the speed of recovery runs from Van Dijk. Full-backs Alexander-Arnold and Robertson maintaining auxiliary midfield positioning during build-up phases."
+                            </p>
+                            <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
+                              <span className="text-[9px] font-mono text-slate-500 uppercase">Analysis_Source: AI_Tactician_v2</span>
+                              <div className="flex gap-1">
+                                <div className="w-1 h-1 rounded-full bg-brand animate-pulse" />
+                                <div className="w-1 h-1 rounded-full bg-brand animate-pulse delay-75" />
+                                <div className="w-1 h-1 rounded-full bg-brand animate-pulse delay-150" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <h4 className="text-[10px] font-mono font-black uppercase tracking-[0.2em] text-slate-400">Key_Performance_Nodes</h4>
+                          <div className="space-y-3">
+                            {['Mo Salah', 'Virgil van Dijk', 'Darwin Nunez'].map((name, i) => (
+                              <div key={i} className="flex items-center justify-between p-4 glass rounded-2xl border-white/5 group-hover:bg-white/5 transition-all">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-lg bg-brand/20 flex items-center justify-center text-brand font-black text-[10px]">#{10+i}</div>
+                                  <span className="text-xs font-bold text-white tracking-tight">{name}</span>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                  <div className="text-right">
+                                    <div className="text-[8px] font-mono text-slate-500 uppercase">Rating</div>
+                                    <div className="text-xs font-black text-brand">8.{7-i}</div>
+                                  </div>
+                                  <ChevronRight className="w-4 h-4 text-slate-600" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </TabsContent>
                   <TabsContent value="chat" className="mt-8 outline-none">
                       <Card className="glass border-sky-100 rounded-3xl overflow-hidden flex flex-col h-[500px]">
@@ -4159,17 +5432,492 @@ export default function App() {
                       </Card>
                     </TabsContent>
                   </Tabs>
+
+                  {/* Broadcast News Ticker */}
+                  {selectedMatch.sport === 'football' && (
+                    <div className="mt-8 border-t border-white/5 bg-black/40 backdrop-blur-md py-3 overflow-hidden relative group/ticker -mx-8 -mb-1">
+                      <div className="absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-[#0A0B0E] to-transparent z-10" />
+                      <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-[#0A0B0E] to-transparent z-10" />
+                      
+                      <motion.div 
+                        animate={{ x: [0, -1500] }}
+                        transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+                        className="flex items-center gap-16 whitespace-nowrap px-16"
+                      >
+                        {[
+                          { label: 'TACTICAL_ALERT', text: 'High defensive line detected for ' + selectedMatch.homeTeam },
+                          { label: 'WEATHER_SYNC', text: 'Scattered clouds, 18°C, humidity 64%' },
+                          { label: 'VAR_STATUS', text: 'System ready, no active reviews' },
+                          { label: 'GLOBAL_PULSE', text: '84k fans connected to this frequency' },
+                          { label: 'TRANSCRIPT', text: 'Match momentum shifting towards mid-pitch node' },
+                          { label: 'PITCH_CONDITION', text: 'Surface temperature: 21°C - Drainage optimal' },
+                          { label: 'STADIUM_LATENCY', text: 'Fiber uplink stable at 10Gbps' },
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-center gap-4">
+                            <span className="text-[9px] font-mono font-black text-brand uppercase tracking-[0.3em]">{item.label}</span>
+                            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest">{item.text}</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+                          </div>
+                        ))}
+                      </motion.div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </AnimatePresence>
           ) : (
-            <div className="flex flex-col items-center justify-center min-h-[600px] glass rounded-[3rem] p-12 text-center space-y-12">
-              <div className="w-32 h-32 bg-sky-50 rounded-full flex items-center justify-center border border-sky-100">
-                <Zap className="w-16 h-16 text-brand" />
+            <div 
+              className="space-y-10 animate-in fade-in duration-1000 pb-20 relative neural-noise"
+              onMouseMove={handleMapMouseMove}
+            >
+              {/* Cinematic Scanline Overlay */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[3rem] z-50">
+                <div className="w-full h-1 bg-brand/10 shadow-[0_0_20px_rgba(14,165,233,0.2)] animate-scanline-sweep" />
               </div>
-              <div className="text-center space-y-2">
-                <p className="text-2xl font-black uppercase tracking-tighter font-display text-slate-900">Select a Broadcast</p>
-                <p className="text-xs font-bold uppercase tracking-[0.4em] text-slate-300">Live Match Center v2.0</p>
+
+              {/* Tactical Sensory Ticker */}
+              <div className="mx-4 bg-slate-950/80 border-y border-slate-900 backdrop-blur-2xl overflow-hidden relative">
+                <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-[#0A0B0E] to-transparent z-10" />
+                <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-[#0A0B0E] to-transparent z-10" />
+                <div className="flex items-center gap-8 py-3 animate-marquee whitespace-nowrap">
+                  {[...Array(2)].map((_, i) => (
+                    <div key={i} className="flex items-center gap-12">
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono font-black text-brand uppercase tracking-widest">Neural_Sync:</span>
+                        <span className="text-[11px] font-mono font-bold text-slate-300">Absolute global consensus achieved (99.2%)</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono font-black text-emerald-500 uppercase tracking-widest">Active_Node:</span>
+                        <span className="text-[11px] font-mono font-bold text-slate-300">London_44 reported Goal_Trigger </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono font-black text-amber-500 uppercase tracking-widest">Grid_Pulse:</span>
+                        <span className="text-[11px] font-mono font-bold text-slate-300">Atmospheric variance detected in Berlin Hub</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[10px] font-mono font-black text-rose-500 uppercase tracking-widest">Critical:</span>
+                        <span className="text-[11px] font-mono font-bold text-slate-300">Tokyo_09 bandwidth peaking at 12.4Tb/s</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* World Hub Header */}
+              <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 px-4">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="px-4 py-1.5 bg-brand/10 border border-brand/20 rounded-full flex items-center gap-3">
+                      <div className="w-2 h-2 rounded-full bg-brand animate-ping" />
+                      <span className="text-[9px] font-mono font-black text-brand uppercase tracking-[0.4em]">Neural_Nerve_Center</span>
+                    </div>
+                  </div>
+                  <h1 className="text-6xl md:text-[9rem] font-display font-black text-white uppercase tracking-tighter leading-none glow-text">
+                    Global_<span className="text-brand">Hub</span>
+                  </h1>
+                </div>
+                <div className="flex items-center gap-10 bg-[#0A0B0E]/80 border border-slate-800 p-8 rounded-[3.5rem] backdrop-blur-3xl shadow-2xl relative overflow-hidden group/header">
+                   <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover/header:opacity-100 transition-opacity" />
+                   <div className="flex flex-col text-right relative z-10">
+                      <span className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.3em] font-black leading-none mb-3">Sync_Stability</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-3xl font-mono font-bold text-white tabular-nums tracking-tighter">99.88%</span>
+                        <div className="flex gap-1 h-6 items-end">
+                          {[1,2,3,4,5,6].map(i => (
+                            <div key={i} className={cn("w-1.5 rounded-full transition-all duration-500", i <= 5 ? "bg-brand animate-pulse" : "bg-slate-800")} style={{ height: `${20 + i * 15}%` }} />
+                          ))}
+                        </div>
+                      </div>
+                   </div>
+                   <div className="w-px h-16 bg-slate-800" />
+                   <div className="flex flex-col text-right relative z-10">
+                      <span className="text-[10px] font-mono text-slate-600 uppercase tracking-[0.3em] font-black leading-none mb-3">Total_Data_Throughput</span>
+                      <span className="text-3xl font-mono font-bold text-brand tabular-nums tracking-tighter">142.4<sub className="text-xs ml-1">PB/S</sub></span>
+                   </div>
+                </div>
+              </div>
+
+              {/* Command Center - Bento Grid Overhaul */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 px-4">
+                
+                {/* Neural Projection Map Hub - ULTIMATE FIDELITY */}
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.98, y: 40 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                  className="md:col-span-2 lg:col-span-3 bg-[#0A0B0E] rounded-[4rem] border border-slate-800/80 relative overflow-hidden group/bento shadow-[0_40px_100px_rgba(0,0,0,0.9)] tactical-cursor"
+                >
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-brand/15 via-transparent to-brand/5 pointer-events-none" />
+                  <div className="absolute inset-0 hologram-flare opacity-30 pointer-events-none" />
+                  
+                  {/* Interactive Telemetry Overlay */}
+                  <div className="absolute top-10 right-10 z-30 pointer-events-none font-mono text-[9px] text-brand/60 uppercase tracking-widest space-y-2 text-right">
+                    <div className="p-4 bg-black/40 border border-brand/20 backdrop-blur-md rounded-2xl">
+                      <div className="flex justify-between gap-8 mb-1">
+                        <span>LAT_COORD</span>
+                        <span className="text-white">{(mousePos.y / 5).toFixed(4)}°N</span>
+                      </div>
+                      <div className="flex justify-between gap-8 mb-1">
+                        <span>LONG_COORD</span>
+                        <span className="text-white">{(mousePos.x / 10).toFixed(4)}°E</span>
+                      </div>
+                      <div className="flex justify-between gap-8">
+                        <span>ALT_PRESSURE</span>
+                        <span className="text-white">1013.25 MB</span>
+                      </div>
+                    </div>
+                    <div className="text-[7px] text-slate-500">REALTIME_SURVEILLANCE_ACTIVE</div>
+                  </div>
+
+                  <div className="relative z-10 flex flex-col h-full min-h-[700px]">
+                    <div className="p-12 pb-0 flex flex-col md:flex-row md:items-start justify-between gap-8">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center shadow-inner group-hover/bento:shadow-[0_0_20px_rgba(14,165,233,0.3)] transition-all">
+                            <Compass className="w-6 h-6 text-brand animate-spin-slow" />
+                          </div>
+                          <div>
+                            <h2 className="text-4xl lg:text-7xl font-display font-black text-white uppercase tracking-tighter leading-none">Neural_<span className="text-brand">Projection</span></h2>
+                            <div className="mt-2 flex items-center gap-3">
+                               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                               <span className="text-[9px] font-mono text-slate-500 uppercase tracking-widest">Global sensory mesh synchronizing...</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-3">
+                        <div className="flex items-center gap-4 bg-[#0F1115] border border-slate-800 py-4 px-8 rounded-2xl shadow-2xl backdrop-blur-xl group-hover/bento:border-brand/50 transition-colors">
+                          <div className="flex flex-col">
+                             <span className="text-[8px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Signal_Lock</span>
+                             <span className="text-xl font-mono font-bold text-brand tabular-nums tracking-tighter">100.000%</span>
+                          </div>
+                          <div className="w-px h-8 bg-slate-800" />
+                          <Activity className="w-5 h-5 text-emerald-500 animate-pulse" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 relative flex items-center justify-center p-16 overflow-hidden">
+                      {/* Advanced SVG World Map with Topographic Layers */}
+                      <div className="relative w-full max-w-6xl aspect-[2/1] scale-110">
+                        <svg viewBox="0 0 1000 500" className="w-full h-full text-slate-800/10 fill-current">
+                           {/* Layered Topographic Data */}
+                           <path d="M200,100 Q400,0 600,100 T900,100 Q1000,200 900,300 T600,450 Q400,500 200,450 T0,300 T200,100" className="opacity-10 stroke-brand/5 stroke-1" fill="none" />
+                           <path d="M220,120 Q420,20 620,120 T920,120 Q1020,220 920,320 T620,470 Q420,520 220,470 T20,320 T220,120" className="opacity-5 stroke-brand/10 stroke-[0.5]" fill="none" />
+                           
+                           {/* Base Map */}
+                           <path d="M200,100 Q400,0 600,100 T900,100 Q1000,200 900,300 T600,450 Q400,500 200,450 T0,300 T200,100" className=" opacity-[0.03]" />
+                           
+                           {/* Neural Connection Paths - High Fidelity */}
+                           <g className="text-brand opacity-60">
+                              <path d="M200,180 L450,220" fill="none" stroke="url(#neuralGradient)" strokeWidth="1" strokeDasharray="5 5" className="animate-neural-dash" />
+                              <path d="M450,220 L780,150" fill="none" stroke="url(#neuralGradient)" strokeWidth="1" strokeDasharray="5 5" className="animate-neural-dash" />
+                              <path d="M780,150 L650,380" fill="none" stroke="url(#neuralGradient)" strokeWidth="1" strokeDasharray="5 5" className="animate-neural-dash" />
+                              <path d="M650,380 L320,350" fill="none" stroke="url(#neuralGradient)" strokeWidth="1" strokeDasharray="5 5" className="animate-neural-dash" />
+                              <path d="M320,350 L200,180" fill="none" stroke="url(#neuralGradient)" strokeWidth="1" strokeDasharray="5 5" className="animate-neural-dash" />
+                              <defs>
+                                <linearGradient id="neuralGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.2" />
+                                  <stop offset="50%" stopColor="#0ea5e9" stopOpacity="1" />
+                                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity="0.2" />
+                                </linearGradient>
+                              </defs>
+                           </g>
+
+                           {/* Node Pings */}
+                           <g>
+                              <circle cx="200" cy="180" r="6" className="text-brand fill-current animate-ping opacity-40" />
+                              <circle cx="200" cy="180" r="2" className="text-brand fill-current" />
+                              
+                              <circle cx="450" cy="220" r="6" className="text-brand fill-current animate-ping opacity-40 duration-1000" />
+                              <circle cx="450" cy="220" r="2" className="text-brand fill-current" />
+                              
+                              <circle cx="780" cy="150" r="6" className="text-brand fill-current animate-ping opacity-40 duration-700" />
+                              <circle cx="780" cy="150" r="2" className="text-brand fill-current" />
+                           </g>
+                        </svg>
+
+                        {/* Diag_Cursor Viewport Overlay */}
+                        <div 
+                          className="absolute pointer-events-none mix-blend-screen transition-all duration-75"
+                          style={{ left: mousePos.x - 20, top: mousePos.y - 20 }}
+                        >
+                           <div className="w-10 h-10 border border-brand/40 rounded-sm relative opacity-40">
+                              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-2 bg-brand/60" />
+                              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-px h-2 bg-brand/60" />
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-px bg-brand/60" />
+                              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-px bg-brand/60" />
+                           </div>
+                        </div>
+                        
+                        {/* Interactive Node Callouts - Refined */}
+                        <div className="absolute top-[20%] left-[15%] group/node">
+                           <div className="absolute -inset-8 bg-brand/5 rounded-full scale-0 group-hover/node:scale-100 transition-transform duration-500" />
+                           <div className="w-16 h-16 border border-brand/40 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm group-hover/node:border-brand transition-all relative z-10">
+                              <div className="w-2.5 h-2.5 bg-brand rounded-full shadow-[0_0_15px_rgba(14,165,233,1)]" />
+                           </div>
+                           <div className="absolute top-0 left-20 bg-slate-950/95 border border-slate-800 p-4 rounded-2xl backdrop-blur-2xl scale-0 group-hover/node:scale-100 transition-all origin-left w-48 shadow-2xl z-20 border-l-brand/50 border-l-4">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-[8px] font-mono font-black text-brand uppercase">Node_UK_Alpha</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-baseline">
+                                  <span className="text-[7px] font-mono text-slate-500">STABILITY</span>
+                                  <span className="text-xs font-mono font-bold text-white">99.4%</span>
+                                </div>
+                                <div className="flex justify-between items-baseline">
+                                  <span className="text-[7px] font-mono text-slate-500">TEMP_INDEX</span>
+                                  <span className="text-xs font-mono font-bold text-white">14.2°C</span>
+                                </div>
+                                <div className="pt-2 border-t border-slate-800">
+                                   <div className="flex items-center gap-2">
+                                      <div className="w-1 h-3 bg-brand" />
+                                      <span className="text-[7px] font-mono text-brand uppercase italic">Stream_Optimal</span>
+                                   </div>
+                                </div>
+                              </div>
+                           </div>
+                        </div>
+
+                        <div className="absolute bottom-[20%] right-[25%] group/node">
+                           <div className="absolute -inset-8 bg-amber-500/5 rounded-full scale-0 group-hover/node:scale-100 transition-transform duration-500" />
+                           <div className="w-16 h-16 border border-amber-500/40 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-sm group-hover/node:border-amber-500 transition-all relative z-10">
+                              <div className="w-2.5 h-2.5 bg-amber-500 rounded-full shadow-[0_0_15px_rgba(245,158,11,1)]" />
+                           </div>
+                           <div className="absolute bottom-0 right-20 bg-slate-950/95 border border-slate-800 p-4 rounded-2xl backdrop-blur-2xl scale-0 group-hover/node:scale-100 transition-all origin-right w-48 shadow-2xl z-20 border-r-amber-500/50 border-r-4 text-right">
+                              <div className="flex justify-between items-start mb-2 flex-row-reverse">
+                                <span className="text-[8px] font-mono font-black text-amber-500 uppercase">Node_JPN_Prime</span>
+                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                              </div>
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-baseline flex-row-reverse">
+                                  <span className="text-[7px] font-mono text-slate-500">STABILITY</span>
+                                  <span className="text-xs font-mono font-bold text-white">88.2%</span>
+                                </div>
+                                <div className="flex justify-between items-baseline flex-row-reverse">
+                                  <span className="text-[7px] font-mono text-slate-500">VAR_SENSING</span>
+                                  <span className="text-xs font-mono font-bold text-white">LOW</span>
+                                </div>
+                                <div className="pt-2 border-t border-slate-800">
+                                   <div className="flex items-center gap-2 justify-end">
+                                      <span className="text-[7px] font-mono text-amber-500 uppercase italic">Calibrating...</span>
+                                      <div className="w-1 h-3 bg-amber-500" />
+                                   </div>
+                                </div>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
+                      
+                      {/* Technical Signal Deck - ULTIMATE GLASS */}
+                      <div className="absolute bottom-12 left-12 right-12 pointer-events-none">
+                        <div className="bg-[#050608]/90 border border-slate-800 p-8 rounded-[3.5rem] backdrop-blur-3xl shadow-[0_40px_80px_rgba(0,0,0,0.8)] flex flex-wrap items-center justify-between gap-12 relative overflow-hidden group/deck">
+                           <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover/deck:opacity-100 transition-opacity" />
+                           
+                           <div className="flex items-center gap-16 relative z-10">
+                              <div className="flex flex-col gap-3">
+                                 <span className="text-[8px] font-mono text-slate-500 uppercase tracking-[0.4em] font-black italic">Neural Spectrum v4</span>
+                                 <div className="flex items-end gap-1.5 h-8">
+                                    {[1, 2, 3, 5, 2, 6, 8, 4, 3, 5, 7, 3, 2, 4, 6].map((h, i) => (
+                                      <div key={i} className="w-2 bg-brand/30 animate-spectrum-wave rounded-full" style={{ animationDelay: `${i * 0.08}s`, height: `${h * 10}%` }} />
+                                    ))}
+                                 </div>
+                              </div>
+                              <div className="flex flex-col">
+                                 <span className="text-[8px] font-mono text-slate-600 uppercase tracking-[0.4em] font-black mb-1">Hub_Variance</span>
+                                 <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-mono font-bold text-white tracking-tighter tabular-nums">+1.242</span>
+                                    <span className="text-[10px] font-mono text-emerald-500 uppercase font-black">Stable</span>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <div className="flex items-center gap-12 relative z-10">
+                              <div className="hidden xl:flex flex-col gap-3 w-64">
+                                 <div className="flex items-center justify-between text-[8px] font-mono uppercase tracking-[0.2em] text-slate-500 font-black">
+                                   <span>Neural_Fabric_Elasticity</span>
+                                   <span className="text-brand">99.98%</span>
+                                 </div>
+                                 <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                                   <motion.div initial={{ width: 0 }} animate={{ width: "99.98%" }} transition={{ duration: 3, ease: "circOut" }} className="h-full bg-brand shadow-[0_0_20px_rgba(14,165,233,0.8)]" />
+                                 </div>
+                              </div>
+                              <div className="w-px h-14 bg-slate-800" />
+                              <div className="flex flex-col">
+                                 <span className="text-[8px] font-mono text-slate-600 uppercase tracking-[0.4em] font-black mb-1">Global_Throughput</span>
+                                 <span className="text-2xl font-mono font-bold text-brand tracking-tighter tabular-nums">1.24 <sub className="text-[10px]">TB/S</sub></span>
+                              </div>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Neural Node Registry - Diagnostic Table */}
+                  <div className="border-t border-slate-800 bg-[#07080A]/50 p-12 relative z-10">
+                    <div className="flex items-center justify-between mb-8">
+                       <div className="flex items-center gap-3">
+                          <Activity className="w-4 h-4 text-brand" />
+                          <h3 className="text-xl font-display font-black text-white uppercase tracking-tighter">Neural_Node_Registry</h3>
+                       </div>
+                       <span className="text-[8px] font-mono text-slate-500 uppercase tracking-widest">Displaying Top 5 Active Latencies</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                       {[
+                         { loc: "Mumbai_5", status: "SYNCED", lat: "12ms", data: "4.2TB", color: "text-emerald-500" },
+                         { loc: "Frankfurt_2", status: "OPTIMAL", lat: "18ms", data: "8.9TB", color: "text-brand" },
+                         { loc: "Sao_Paulo_9", status: "WARNING", lat: "142ms", data: "1.2TB", color: "text-amber-500" }
+                       ].map((node, i) => (
+                         <div key={i} className="bg-slate-900/40 border border-slate-800 p-6 rounded-[2rem] flex flex-col gap-4 group/nodeitem hover:border-brand/40 transition-colors">
+                            <div className="flex justify-between items-center">
+                               <span className="text-[9px] font-mono font-black text-white uppercase tracking-widest">{node.loc}</span>
+                               <span className={cn("text-[7px] font-mono font-black px-2 py-0.5 rounded-full bg-black/40", node.color)}>{node.status}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                               <div className="flex flex-col">
+                                  <span className="text-[7px] font-mono text-slate-600 uppercase">Latency</span>
+                                  <span className="text-xs font-mono font-bold text-slate-300">{node.lat}</span>
+                               </div>
+                               <div className="flex flex-col text-right">
+                                  <span className="text-[7px] font-mono text-slate-600 uppercase">Throughput</span>
+                                  <span className="text-xs font-mono font-bold text-slate-300">{node.data}</span>
+                               </div>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
+                  </div>
+                </motion.div>
+                
+                {/* Specialist Column - Deep Analytics */}
+                <div className="md:col-span-2 lg:col-span-1 flex flex-col gap-8 lg:gap-12">
+                  {/* Neural Oracle Node */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2, duration: 1 }}
+                    className="bg-white rounded-[4rem] p-12 border border-slate-100 shadow-[0_40px_100px_rgba(0,0,0,0.08)] relative overflow-hidden group/oracle h-fit"
+                  >
+                    <div className="absolute -top-12 -right-12 p-8 opacity-[0.03] group-hover/oracle:scale-110 transition-transform duration-1000 rotate-12">
+                      <TrendingUp className="w-64 h-64 text-slate-900" />
+                    </div>
+                    <div className="relative z-10 space-y-10">
+                      <div className="flex justify-between items-start">
+                        <div className="w-20 h-20 bg-slate-950 rounded-[2.5rem] flex items-center justify-center text-brand shadow-2xl shadow-brand/40 group-hover/oracle:rotate-3 transition-transform">
+                          <Zap className="w-10 h-10 shadow-[0_0_20px_rgba(14,165,233,0.5)]" />
+                        </div>
+                        <div className="flex flex-col text-right">
+                           <span className="text-[9px] font-mono text-slate-500 uppercase tracking-[0.2em] font-black mb-1">Model: Prophet_v32X</span>
+                           <Badge variant="outline" className="text-[9px] border-emerald-500/20 text-emerald-500 bg-emerald-500/5 uppercase font-black px-3 tracking-widest">Active_Briefing</Badge>
+                        </div>
+                      </div>
+                      <div className="space-y-8">
+                         <div className="space-y-2">
+                            <h3 className="text-4xl lg:text-5xl font-display font-black uppercase tracking-tighter text-slate-900 leading-none">Neural_<span className="text-brand">Oracle</span></h3>
+                            <p className="text-[11px] font-mono font-bold text-slate-400 uppercase tracking-[0.4em] leading-none">Global Inference Engine Engaged</p>
+                         </div>
+                         <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100 relative overflow-hidden group/inf">
+                            <div className="absolute inset-y-0 left-0 w-1 bg-brand" />
+                            <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                               Detected a massive <span className="text-slate-950 font-black italic">Atmospheric_Pressure</span> shift in the UEFA_DOMAIN. Probability of top-tier upsets: <span className="text-brand font-black">64.2%</span>.
+                            </p>
+                         </div>
+                         <button className="w-full py-6 bg-slate-950 text-white rounded-[2rem] text-[11px] font-black uppercase tracking-[0.4em] hover:bg-brand transition-all shadow-2xl shadow-brand/20 active:scale-[0.98] flex items-center justify-center gap-4 group/btn">
+                           Access Inference Nodes
+                           <ChevronRight className="w-5 h-5 text-brand group-hover/btn:translate-x-2 transition-transform" />
+                         </button>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Diag_Terminal Viewport */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: 40 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4, duration: 1 }}
+                    className="bg-[#0A0B0E] rounded-[4rem] border border-slate-800/60 relative overflow-hidden group/terminal flex-1 min-h-[400px]"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-b from-brand/5 to-transparent opacity-0 group-hover/terminal:opacity-100 transition-opacity" />
+                    <div className="p-12 relative z-10 flex flex-col h-full gap-10">
+                       <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
+                             <span className="text-[11px] font-mono font-black text-slate-200 uppercase tracking-[0.4em]">Diag_Terminal</span>
+                          </div>
+                          <div className="px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg">
+                            <span className="text-[9px] font-mono text-slate-600 uppercase font-black">Session: 0x4F4C</span>
+                          </div>
+                       </div>
+                       <div className="flex-1 space-y-5 font-mono text-[10px] leading-relaxed text-slate-400 no-scrollbar overflow-auto">
+                          {[
+                            { label: "COORD_LOCK", val: "44.SYNC", color: "text-slate-200" },
+                            { label: "LINK_STATE", val: "STABLE", color: "text-emerald-500" },
+                            { label: "BURST_MODE", val: "ENABLED", color: "text-brand" },
+                            { label: "ENTROPY", val: "0.00224", color: "text-amber-500" }
+                          ].map((item, i) => (
+                            <div key={i} className="flex gap-4 group/termline">
+                               <span className="text-brand/30 group-hover/termline:text-brand transition-colors font-black">#</span>
+                               <span className="flex-1 border-b border-slate-900 pb-1 flex justify-between">
+                                  <span>{item.label}:</span>
+                                  <span className={cn("font-bold", item.color)}>{item.val}</span>
+                               </span>
+                            </div>
+                          ))}
+                          <div className="flex gap-4 animate-pulse mt-8">
+                             <span className="text-brand/50 font-black">{">"}</span>
+                             <span className="text-brand font-black uppercase tracking-widest">Waiting for neural_handshake...</span>
+                          </div>
+                       </div>
+                       <div className="pt-6 border-t border-slate-800 mt-auto">
+                          <div className="flex items-center justify-between mb-2">
+                             <span className="text-[8px] font-mono text-slate-600 uppercase font-black tracking-widest">Nerve_Load</span>
+                             <span className="text-[10px] font-mono text-brand font-bold">82.4%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
+                             <div className="w-4/5 h-full bg-brand shadow-[0_0_10px_rgba(14,165,233,0.4)]" />
+                          </div>
+                       </div>
+                    </div>
+                  </motion.div>
+                </div>
+
+                {/* Final Performance Bento Grid */}
+                <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+                   {[
+                     { label: "Neural Load", val: "92.4%", icon: Activity, desc: "Processing_Stress", color: "text-brand" },
+                     { label: "Global Bandwidth", val: "1.24 Tb/s", icon: Radio, desc: "Throughput_Stability", color: "text-emerald-500" },
+                     { label: "Sync Latency", val: "14.2ms", icon: Clock, desc: "Mean_Response", color: "text-amber-500" },
+                     { label: "Neural Nodes", val: "16k+", icon: Users, desc: "Grid_Population", color: "text-rose-500" }
+                   ].map((stat, i) => (
+                     <motion.div
+                       key={i}
+                       initial={{ opacity: 0, scale: 0.9 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       transition={{ delay: 0.6 + (i * 0.1), duration: 0.8 }}
+                       className="bg-[#0A0B0E] border border-slate-800 rounded-[3rem] p-10 flex flex-col gap-8 group/statcard hover:bg-slate-900 transition-all cursor-crosshair shadow-2xl relative overflow-hidden"
+                     >
+                        <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover/statcard:opacity-100 transition-opacity" />
+                        <div className="flex items-center justify-between relative z-10">
+                           <div className={cn("w-16 h-16 rounded-2xl bg-black/40 border border-slate-800 flex items-center justify-center transition-transform group-hover/statcard:rotate-6", stat.color)}>
+                              <stat.icon className="w-8 h-8" />
+                           </div>
+                           <div className="flex flex-col text-right">
+                              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-black leading-none mb-1">Status</span>
+                              <span className="text-[9px] font-mono text-emerald-500 uppercase font-black">Optimal</span>
+                           </div>
+                        </div>
+                        <div className="space-y-2 relative z-10">
+                           <h3 className="text-5xl font-mono font-bold text-white tracking-tighter tabular-nums leading-none">{stat.val}</h3>
+                           <p className="text-[12px] font-display font-black text-slate-400 uppercase tracking-widest">{stat.label}</p>
+                        </div>
+                        <div className="pt-6 border-t border-slate-800 relative z-10">
+                           <p className="text-[8px] font-mono text-slate-600 uppercase tracking-[0.3em] font-black italic">{stat.desc}</p>
+                        </div>
+                     </motion.div>
+                   ))}
+                </div>
               </div>
             </div>
           )}
@@ -4212,7 +5960,17 @@ export default function App() {
                               <span className="text-[10px] text-slate-400">{new Date(event.timestamp).toLocaleTimeString()}</span>
                             </div>
                             <p className="text-sm text-slate-600 leading-relaxed">
-                              {event.type === 'match_event' && <span className="text-brand font-bold mr-2">[{event.matchName}]</span>}
+                              {event.type === 'match_event' && (
+                                <span 
+                                  onClick={() => {
+                                    setActiveMainTab("matches");
+                                    setSelectedMatchId(event.matchId);
+                                  }}
+                                  className="text-brand font-bold mr-2 cursor-pointer hover:underline"
+                                >
+                                  [{event.matchName}]
+                                </span>
+                              )}
                               {event.content}
                             </p>
                           </div>
@@ -4402,6 +6160,12 @@ export default function App() {
                 <TabsTrigger value="football" className="px-8 py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg shadow-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-widest transition-all">
                   Football
                 </TabsTrigger>
+                <TabsTrigger value="basketball" className="px-8 py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg shadow-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-widest transition-all">
+                  Basketball
+                </TabsTrigger>
+                <TabsTrigger value="hockey" className="px-8 py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg shadow-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-widest transition-all">
+                  Hockey
+                </TabsTrigger>
                 <TabsTrigger value="cricket" className="px-8 py-3 rounded-xl data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-lg shadow-slate-200 text-slate-400 font-black uppercase text-[10px] tracking-widest transition-all">
                   Cricket
                 </TabsTrigger>
@@ -4414,8 +6178,23 @@ export default function App() {
               <FootballRankings onTeamClick={(leagueId, teamName) => {
                 setActiveMainTab("matches");
                 if (teamName) {
-                  setPlayerSearchQuery(teamName);
-                  searchPlayers(teamName);
+                  setMatchSearchQuery(teamName);
+                }
+              }} />
+            </TabsContent>
+            <TabsContent value="basketball">
+              <BasketballRankings onTeamClick={(teamName) => {
+                setActiveMainTab("matches");
+                if (teamName) {
+                  setMatchSearchQuery(teamName);
+                }
+              }} />
+            </TabsContent>
+            <TabsContent value="hockey">
+              <HockeyRankings onTeamClick={(teamName) => {
+                setActiveMainTab("matches");
+                if (teamName) {
+                  setMatchSearchQuery(teamName);
                 }
               }} />
             </TabsContent>
